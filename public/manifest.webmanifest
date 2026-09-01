@@ -1,0 +1,21 @@
+{
+  "name": "Sietchwright",
+  "short_name": "Sietchwright",
+  "description": "Dune: Awakening CHOAM-kit 3D base planner",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#110e0b",
+  "theme_color": "#110e0b",
+  "icons": [
+    {
+      "src": "/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
