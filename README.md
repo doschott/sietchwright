@@ -6,6 +6,8 @@ Answer a short questionnaire (pad size, stories, shape, door facing, vehicle bay
 
 ![Sietchwright raising a CHOAM keep](docs/preview.png)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/doschott/sietchwright)
+
 **Not affiliated with Funcom, Legendary, or the Herbert estate.** Dune, Dune: Awakening, CHOAM, and related names belong to their owners. This is a fan planning tool.
 
 ## What it does
@@ -43,13 +45,15 @@ npm run build     # production client + Vercel output
 
 ## Deploy on Vercel
 
-This repo is set up for Vercel Git deploys:
+This repo is ready for Vercel Git deploys. Fastest path:
 
-1. Import [doschott/sietchwright](https://github.com/doschott/sietchwright) (or your fork)
-2. Framework: leave auto, or set build command to `npm run build`
-3. No environment variables required (auth and database stay off)
+1. Open [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/doschott/sietchwright), or Import `doschott/sietchwright` from the Vercel dashboard
+2. Build command: `npm run build` (already in `vercel.json`)
+3. No environment variables. Auth and database stay off.
 
-Nitro writes `.vercel/output` during `vite build`. Vercel serves that.
+Nitro writes `.vercel/output` during `vite build`. Vercel serves that. Every push to `main` can ship a production build once the project is linked.
+
+If the Vercel GitHub App is set to selected repositories, add `sietchwright` under GitHub → Settings → Applications → Vercel → Repository access.
 
 ## CHOAM notes
 
