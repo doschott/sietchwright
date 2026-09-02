@@ -15,6 +15,8 @@ Honesty bar: claim = evidence. No secrets are repeated in this file.
 
 One Grok-template leftover was neutralized on this pass (preview OAuth client secret in source; auth now fail-closed). Git history still contains the old template string. That string is a low-privilege `*.grok-sandbox.com` preview client, not an enterprise credential. We did not rewrite public history.
 
+Follow-up the same day: `src/lib/auth`, `src/lib/app-data`, and `src/lib/db.ts` were deleted. Better Auth, jose, kysely, pglite, and pg are no longer dependencies. Git history still has the old files.
+
 ## What was scanned
 
 | Check | Evidence |

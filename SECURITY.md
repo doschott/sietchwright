@@ -2,7 +2,7 @@
 
 Sietchwright is a static in-browser planner. There is no user account and no server database in the default app. Plans live in `localStorage` on the visitor's machine. There is no native installer and no camera or microphone access.
 
-Public production builds set `VITE_AUTH_ENABLED=false`. Do not commit `.env` files, tokens, or Grok preview OAuth secrets.
+Do not commit `.env` files, tokens, or OAuth secrets. There is no sign-in.
 
 ## Supported versions
 
@@ -34,4 +34,4 @@ You should get an acknowledgement within a few days.
 
 - "I can write to my own localStorage"
 - Game balance or CHOAM granite numbers that disagree with a wiki page (open a normal issue)
-- Missing auth (auth is intentionally off)
+- Missing auth (there is no sign-in on purpose)

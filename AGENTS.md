@@ -8,6 +8,6 @@ This file is for humans and coding agents working in this repo.
 - Vehicle stalls and fleet packing live in `src/lib/vehicles.ts`. Cite `docs/choam.md` when you change footprints.
 - Share links: `src/lib/site.ts` (`https://sietchwright.com`), never localhost.
 - Granite and in-game names: `src/lib/pieces.ts`. Cite wiki or in-client evidence when you change them.
-- Auth under `src/lib/auth/` is leftover template code. Keep it compiling. Do not turn it on for the public planner.
+- No accounts. Do not add Better Auth, a database, or sign-in to the public planner.
 - Copy: no em dashes. Hyphens are fine.
 - Fan project. Do not claim Funcom affiliation.

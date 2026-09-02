@@ -4,6 +4,16 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Removed
+
+- Grok template auth, app-data, and database leftover (`src/lib/auth`, `src/lib/app-data`, `src/lib/db.ts`)
+- Unused template packages (Better Auth, jose, kysely, pglite, pg, react-table, unused Radix/form/chart kits)
+
+### Changed
+
+- GitHub Actions `checkout` and `setup-node` are v7
+- Dependabot groups npm patch/minor updates and ignores TypeScript and `@types/node` majors
+
 ### Added
 
 - North compass under the Sietchwright name card. It rotates with the camera so N is yard north (−Z)

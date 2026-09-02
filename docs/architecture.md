@@ -45,12 +45,13 @@ Zoom is a pulse (`zoomBy('in' | 'out' | 'fit')`) consumed by `CameraRig` in `src
 | `src/lib/site.ts` | Canonical URL |
 | `src/lib/camera.ts` | Frame, zoom, and compass yaw |
 | `src/lib/storage.ts` | localStorage v3 |
+| `.github/dependabot.yml` | Weekly npm patch/minor groups; ignore TS and `@types/node` majors |
 | `src/components/chrome/` | Plan sheet, kit, inspector, dock, zoom |
 | `src/components/scene/` | 3D yard |
 
-## Auth leftover
+## Auth
 
-`src/lib/auth/` comes from the Grok app template. The public planner does not sign anyone in. Keep the files type-clean (`scripts/sign-out-plan.mjs` exists for that). Do not wire Better Auth into the yard.
+There is no account system. The Grok template auth, app-data, and database files were removed. Do not add Better Auth or a database to the public planner.
 
 ## Deploy
 
