@@ -12,8 +12,12 @@ import {
   type BriefSpec,
 } from "./spec.ts";
 import { writeSave } from "./storage";
+import type { ZoomAction } from "./camera";
 
-type View = "iso" | "top" | "south";
+export type View = "iso" | "top" | "south";
+
+/** Only one overlay panel is open at a time so menus never stack over the yard. */
+export type Overlay = "none" | "brief" | "kit" | "inspect";
 
 type State = {
   plan: Plan;
@@ -31,6 +35,10 @@ type State = {
   view: View;
   camTick: number;
   history: Plan[];
+  overlay: Overlay;
+  chromeHidden: boolean;
+  zoomPulse: number;
+  zoomAction: ZoomAction;
   setSpec: (patch: Partial<BriefSpec>) => void;
   applySpec: (spec: BriefSpec) => void;
   setPlan: (plan: Plan) => void;
@@ -42,6 +50,10 @@ type State = {
   setView: (v: View) => void;
   setGenerating: (v: boolean) => void;
   setError: (v: string | null) => void;
+  setOverlay: (overlay: Overlay) => void;
+  toggleOverlay: (overlay: Exclude<Overlay, "none">) => void;
+  toggleChrome: () => void;
+  zoomBy: (action: ZoomAction) => void;
   removeSelected: () => void;
   rotateSelected: () => void;
   placeAt: (x: number, z: number, rot: number, story: number) => void;
@@ -85,6 +97,10 @@ export const useYard = create<State>((set, get) => ({
   view: "iso",
   camTick: 0,
   history: [],
+  overlay: "brief",
+  chromeHidden: false,
+  zoomPulse: 0,
+  zoomAction: "fit",
   setSpec: (patch) => {
     const { spec, notes } = applyConstraints({ ...get().spec, ...patch });
     const brief = describeSpec(spec);
@@ -108,9 +124,34 @@ export const useYard = create<State>((set, get) => ({
     });
     persist({ plan });
   },
-  select: (selectedId) => set({ selectedId, placeType: null }),
-  setPlaceType: (placeType) => set({ placeType, selectedId: null }),
+  select: (selectedId) =>
+    set({
+      selectedId,
+      placeType: null,
+      overlay: selectedId ? "inspect" : get().overlay === "inspect" ? "none" : get().overlay,
+      chromeHidden: selectedId ? false : get().chromeHidden,
+    }),
+  setPlaceType: (placeType) =>
+    set({
+      placeType,
+      selectedId: null,
+      overlay: placeType ? "kit" : get().overlay === "kit" ? "none" : get().overlay,
+      chromeHidden: false,
+    }),
   setPlaceStory: (placeStory) => set({ placeStory }),
+  setOverlay: (overlay) => set({ overlay, chromeHidden: false }),
+  toggleOverlay: (overlay) =>
+    set({
+      overlay: get().overlay === overlay ? "none" : overlay,
+      chromeHidden: false,
+    }),
+  toggleChrome: () =>
+    set({
+      chromeHidden: !get().chromeHidden,
+      overlay: !get().chromeHidden ? "none" : get().overlay,
+    }),
+  zoomBy: (zoomAction) =>
+    set({ zoomAction, zoomPulse: get().zoomPulse + 1, chromeHidden: false }),
   toggleMarkers: () => {
     const showMarkers = !get().showMarkers;
     set({ showMarkers });
@@ -198,6 +239,10 @@ export const useYard = create<State>((set, get) => ({
       error: null,
       camTick: get().camTick + 1,
       placeType: null,
+      overlay: "brief",
+      chromeHidden: false,
+      zoomAction: "fit",
+      zoomPulse: get().zoomPulse + 1,
     });
     persist({ plan, brief, spec, builtSpec: null });
   },
@@ -214,9 +259,14 @@ export const useYard = create<State>((set, get) => ({
       notes: [],
       plan,
       selectedId: null,
+      placeType: null,
       history: pushHistory(prev),
       error: null,
       camTick: get().camTick + 1,
+      overlay: "none",
+      chromeHidden: false,
+      zoomAction: "fit",
+      zoomPulse: get().zoomPulse + 1,
     });
     persist({ spec, brief, plan, builtSpec: spec });
   },

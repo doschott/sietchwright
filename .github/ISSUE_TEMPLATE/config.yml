@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Play the planner
+    url: https://sietchwright.com
+    about: Raise a sietch in the browser
+  - name: Security report
+    url: https://github.com/doschott/sietchwright/security/advisories/new
+    about: Private vulnerability reporting

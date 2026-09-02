@@ -1,4 +1,4 @@
-import { RotateCw, Trash2 } from "lucide-react";
+import { RotateCw, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { specChecks } from "@/lib/build-from-spec";
@@ -14,6 +14,8 @@ export function Inspector({ compact = false }: { compact?: boolean }) {
   const selectedId = useYard((s) => s.selectedId);
   const rotateSelected = useYard((s) => s.rotateSelected);
   const removeSelected = useYard((s) => s.removeSelected);
+  const select = useYard((s) => s.select);
+  const setOverlay = useYard((s) => s.setOverlay);
   const piece = plan.pieces.find((p) => p.id === selectedId);
   const room = piece?.room ? plan.rooms.find((r) => r.id === piece.room) : undefined;
   const counts = countPieces(plan);
@@ -52,7 +54,26 @@ export function Inspector({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className="flex max-h-96 flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-surface/92 p-3 shadow-panel">
+    <section
+      aria-label="Yard inspector"
+      className="flex h-full max-h-full flex-col overflow-hidden rounded-xl border border-border bg-surface/95 shadow-panel"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <p className="text-xs font-medium tracking-wide text-muted">Inspector</p>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label="Close inspector"
+          onClick={() => {
+            select(null);
+            setOverlay("none");
+          }}
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       {piece ? (
         <div>
           <Badge className="border-0 text-fg" style={{ background: PIECES[piece.type].marker }}>
@@ -69,7 +90,7 @@ export function Inspector({ compact = false }: { compact?: boolean }) {
           </p>
           {room ? (
             <p className="mt-2 text-sm text-muted">
-              Room: <span className="text-fg">{room.name}</span> — {room.purpose}
+              Room: <span className="text-fg">{room.name}</span> - {room.purpose}
             </p>
           ) : null}
           <div className="mt-3 flex gap-2">
@@ -149,6 +170,7 @@ export function Inspector({ compact = false }: { compact?: boolean }) {
             })}
         </ul>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }

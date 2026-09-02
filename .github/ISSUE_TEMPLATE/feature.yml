@@ -1,0 +1,23 @@
+name: Feature
+description: A change to the planner
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Who is this for
+      description: New player, veteran builder, phone, contributor, or in-game accuracy.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources
+      description: Wiki, Funcom notes, or an in-client screenshot if this is a CHOAM fact.

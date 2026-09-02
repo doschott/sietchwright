@@ -2,6 +2,7 @@ import { Grid, OrbitControls, useCursor } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { framedPosition, zoomOffset } from "@/lib/camera";
 import { isEdgeType } from "@/lib/pieces";
 import { boundsOf } from "@/lib/plan";
 import { useYard } from "@/lib/store";
@@ -28,8 +29,11 @@ function hatchIsRoof(
 function CameraRig() {
   const view = useYard((s) => s.view);
   const camTick = useYard((s) => s.camTick);
+  const zoomPulse = useYard((s) => s.zoomPulse);
+  const zoomAction = useYard((s) => s.zoomAction);
   const { camera } = useThree();
   const controls = useRef<OrbitControlsImpl>(null);
+  const lastPulse = useRef(0);
 
   useLayoutEffect(() => {
     const plan = useYard.getState().plan;
@@ -37,20 +41,34 @@ function CameraRig() {
     const tx = b.cx;
     const ty = 0.45;
     const tz = b.cz;
-    const position: [number, number, number] =
-      view === "top"
-        ? [tx, 16, tz + 0.18]
-        : view === "south"
-          ? [tx, 3.1, b.maxZ + 11]
-          : [tx + 9, 7.6, tz + 12];
+    const c = controls.current;
+    const isZoom = zoomPulse !== lastPulse.current;
+    lastPulse.current = zoomPulse;
+
+    if (isZoom && zoomAction !== "fit") {
+      const off = zoomOffset(
+        camera.position.x - tx,
+        camera.position.y - ty,
+        camera.position.z - tz,
+        zoomAction,
+      );
+      camera.position.set(tx + off.x, ty + off.y, tz + off.z);
+      camera.lookAt(tx, ty, tz);
+      if (c) {
+        c.target.set(tx, ty, tz);
+        c.update();
+      }
+      return;
+    }
+
+    const position = framedPosition(view, b);
     camera.position.set(position[0], position[1], position[2]);
     camera.lookAt(tx, ty, tz);
-    const c = controls.current;
     if (c) {
       c.target.set(tx, ty, tz);
       c.update();
     }
-  }, [camera, camTick, view]);
+  }, [camera, camTick, view, zoomPulse, zoomAction]);
 
   return (
     <OrbitControls

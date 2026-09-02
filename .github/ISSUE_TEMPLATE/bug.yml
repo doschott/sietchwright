@@ -1,0 +1,41 @@
+name: Bug
+description: Something in the planner is wrong
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks. A screenshot of the yard plus the answers you picked helps more than anything.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      placeholder: The garage faced west when I asked for east.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: answers
+    attributes:
+      label: Questionnaire answers
+      description: Size, stories, shape, people door, vehicle, extras.
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: URL
+      placeholder: https://sietchwright.com
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - sietchwright.com
+        - Local npm run dev
+        - Vercel preview

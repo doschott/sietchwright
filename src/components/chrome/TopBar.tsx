@@ -1,7 +1,8 @@
-import { Box, Eye, EyeOff, Grid3x3, RotateCcw, Undo2 } from "lucide-react";
+import { Box, Eye, EyeOff, Grid3x3, Minimize2, RotateCcw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { countPieces } from "@/lib/plan";
 import { PIECES } from "@/lib/pieces";
+import { shareIntentUrl, sharePageUrl } from "@/lib/site";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -23,13 +24,12 @@ function shareOnX() {
   const counts = countPieces(plan);
   const gd = counts.garage_door ?? 0;
   const garageLine = gd > 0 ? ` · ${gd} two-high garage door${gd > 1 ? "s" : ""}` : "";
-  const page = typeof window !== "undefined" ? window.location.href : "";
+  const page = sharePageUrl();
   const text =
     n > 0
       ? `I raised "${plan.name}" in Sietchwright — ${n} CHOAM pieces, ~${granite} granite${garageLine}.\n\n${plan.brief}\n\n${page}`
       : `Laying out a Dune: Awakening base in Sietchwright. Empty yard, CHOAM kit, two-high garage doors.\n\n${page}`;
-  const href = `https://x.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 900))}`;
-  window.open(href, "_blank", "noopener,noreferrer");
+  window.open(shareIntentUrl(text), "_blank", "noopener,noreferrer");
 }
 
 export function TopBar() {
@@ -43,6 +43,7 @@ export function TopBar() {
   const resetYard = useYard((s) => s.resetYard);
   const history = useYard((s) => s.history);
   const pieceCount = useYard((s) => s.plan.pieces.length);
+  const toggleChrome = useYard((s) => s.toggleChrome);
 
   return (
     <header className="flex items-start justify-between gap-3">
@@ -109,15 +110,20 @@ export function TopBar() {
         </Button>
         <Button
           variant="secondary"
-          onClick={shareOnX}
-          aria-label="Share on X"
+          size="icon"
+          aria-label="Hide menus so you can see the yard"
+          title="Hide menus (H)"
+          onClick={toggleChrome}
         >
+          <Minimize2 className="size-4" aria-hidden="true" />
+        </Button>
+        <Button variant="secondary" onClick={shareOnX} aria-label="Share on X">
           <XMark className="size-3.5" />
           <span className="hidden sm:inline">Share on X</span>
         </Button>
         <span className="hidden items-center rounded-md border border-border bg-surface/92 px-2 text-xs text-subtle md:flex">
           <Box className="mr-1 size-3.5" />
-          {pieceCount > 0 ? `${pieceCount} pcs · ` : ""}R rotate · Del
+          {pieceCount > 0 ? `${pieceCount} pcs · ` : ""}+ − zoom · R rotate · Del
         </span>
       </div>
     </header>

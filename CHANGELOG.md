@@ -1,0 +1,34 @@
+# Changelog
+
+All notable changes to Sietchwright are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+## [0.2.0] - 2026-09-01
+
+### Added
+
+- One-panel menu system: Plan, CHOAM kit, and inspector no longer stack over the yard
+- Three-step plan sheet (pad, doors, extras) with presets on step 1
+- Thin bottom dock for Plan / Kit / Raise
+- Zoom in, zoom out, and fit-yard controls, plus `+` `-` `F` keys
+- Hide menus (`H`) for a clear look at the raised sietch
+- Canonical share URL `https://sietchwright.com` on the Share on X button
+- CHOAM Facility granite table aligned to awakening.wiki
+- Open-source contributor kit: code of conduct, security policy, issue and PR templates, Dependabot, CODEOWNERS, architecture and CHOAM docs
+
+### Fixed
+
+- Typecheck failed on a missing Grok-template `scripts/sign-out-plan.mjs`
+- Questionnaire overflow hid vehicle options and covered the 3D build
+
+### Changed
+
+- After a raise, chrome recedes so the schematic stays visible
+- `package.json` homepage points at sietchwright.com
+
+## [0.1.0] - 2026-09-01
+
+### Added
+
+- Public MIT repo, questionnaire raise, CHOAM kit, iso/top/south cameras, localStorage save, Vercel deploy button

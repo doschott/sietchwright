@@ -41,7 +41,7 @@ export function emptyPlan(brief = ""): Plan {
   };
 }
 
-export function boundsOf(plan: Plan): {
+export type Bounds = {
   minX: number;
   maxX: number;
   minZ: number;
@@ -49,7 +49,9 @@ export function boundsOf(plan: Plan): {
   maxY: number;
   cx: number;
   cz: number;
-} {
+};
+
+export function boundsOf(plan: Plan): Bounds {
   if (plan.pieces.length === 0) {
     return { minX: 0, maxX: 4, minZ: 0, maxZ: 4, maxY: 0, cx: 2, cz: 2 };
   }

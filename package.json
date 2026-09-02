@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git+https://github.com/doschott/sietchwright.git"
   },
-  "homepage": "https://github.com/doschott/sietchwright",
+  "homepage": "https://sietchwright.com",
   "bugs": {
     "url": "https://github.com/doschott/sietchwright/issues"
   },
@@ -35,7 +35,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/build-from-spec.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/build-from-spec.test.ts src/lib/site.test.ts src/lib/camera.test.ts src/lib/pieces.test.ts src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts",
     "lint": "eslint ."
   },
   "dependencies": {
