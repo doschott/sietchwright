@@ -72,6 +72,7 @@ npm run build
 | [docs/choam.md](docs/choam.md) | In-game CHOAM Facility facts the planner uses |
 | [docs/ui.md](docs/ui.md) | Menu system, zoom, personas |
 | [docs/keyboard.md](docs/keyboard.md) | Shortcuts |
+| [docs/deploy.md](docs/deploy.md) | Vercel, CI, custom domain |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to send a PR |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | How we treat each other |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability |
