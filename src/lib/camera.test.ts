@@ -4,6 +4,7 @@ import {
   MAX_DISTANCE,
   MIN_DISTANCE,
   clampDistance,
+  compassYaw,
   framedPosition,
   zoomOffset,
 } from "./camera.ts";
@@ -38,5 +39,10 @@ describe("camera framing", () => {
     assert.ok(Math.hypot(out.x, out.y, out.z) > base);
     assert.equal(clampDistance(1), MIN_DISTANCE);
     assert.equal(clampDistance(99), MAX_DISTANCE);
+  });
+
+  it("compass yaw is 0 from the south and +π/2 from the east", () => {
+    assert.equal(compassYaw(3, 10, 3, 2.5), 0);
+    assert.ok(Math.abs(compassYaw(10, 2.5, 3, 2.5) - Math.PI / 2) < 1e-9);
   });
 });

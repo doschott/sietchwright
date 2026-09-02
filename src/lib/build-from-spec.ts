@@ -1,5 +1,21 @@
-import { FACE_ROT, SIZE_DIMS, describeSpec, nameFromSpec, normalizeSpec, type BriefSpec, type Facing } from "./spec.ts";
+import {
+  FACE_ROT,
+  PARK_LABELS,
+  SIZE_DIMS,
+  describeSpec,
+  nameFromSpec,
+  normalizeSpec,
+  parkedVehicles,
+  type BriefSpec,
+  type Facing,
+} from "./spec.ts";
 import { GARAGE_W, garageAlong, type Rot } from "./grid.ts";
+import {
+  fleetStalls,
+  packExtent,
+  type PackedStall,
+  type ParkVehicleId,
+} from "./vehicles.ts";
 import { Yard } from "./yard.ts";
 import { boundsOf, countPieces, type Plan } from "./plan.ts";
 
@@ -60,6 +76,109 @@ function facingFromRot(rot: Rot): Facing {
   return "west";
 }
 
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function faceRect(
+  w: number,
+  d: number,
+  facing: Facing,
+  u0: number,
+  u1: number,
+  v0: number,
+  v1: number,
+): Rect {
+  const uu0 = Math.min(u0, u1);
+  const uu1 = Math.max(u0, u1);
+  const vv0 = Math.min(v0, v1);
+  const vv1 = Math.max(v0, v1);
+  if (facing === "south") {
+    return {
+      x0: clamp(uu0, 0, w - 1),
+      x1: clamp(uu1, 0, w - 1),
+      z0: clamp(d - 1 - vv1, 0, d - 1),
+      z1: clamp(d - 1 - vv0, 0, d - 1),
+    };
+  }
+  if (facing === "north") {
+    return {
+      x0: clamp(uu0, 0, w - 1),
+      x1: clamp(uu1, 0, w - 1),
+      z0: clamp(vv0, 0, d - 1),
+      z1: clamp(vv1, 0, d - 1),
+    };
+  }
+  if (facing === "east") {
+    return {
+      x0: clamp(w - 1 - vv1, 0, w - 1),
+      x1: clamp(w - 1 - vv0, 0, w - 1),
+      z0: clamp(uu0, 0, d - 1),
+      z1: clamp(uu1, 0, d - 1),
+    };
+  }
+  return {
+    x0: clamp(vv0, 0, w - 1),
+    x1: clamp(vv1, 0, w - 1),
+    z0: clamp(uu0, 0, d - 1),
+    z1: clamp(uu1, 0, d - 1),
+  };
+}
+
+export type WorldStall = {
+  vehicle: ParkVehicleId;
+  shared: ParkVehicleId[];
+  rect: Rect;
+};
+
+/** Map packed stalls onto the named pad face. */
+export function stallsToWorld(
+  w: number,
+  d: number,
+  facing: Facing,
+  stalls: PackedStall[],
+  shareFace: boolean,
+): WorldStall[] {
+  if (!stalls.length) return [];
+  const along = facing === "south" || facing === "north" ? w : d;
+  const deep = facing === "south" || facing === "north" ? d : w;
+  const ext = packExtent(stalls);
+  const minLivingAlong = shareFace ? 1 : 0;
+  const availAlong = Math.max(GARAGE_W, along - minLivingAlong);
+  const availDepth = Math.max(2, deep - 2);
+  const alongFit = Math.min(ext.along, availAlong);
+  const start = shareFace ? 0 : Math.max(0, Math.floor((along - alongFit) / 2));
+  const alongScale = ext.along > availAlong ? availAlong / ext.along : 1;
+  const depthScale = ext.depth > availDepth ? availDepth / ext.depth : 1;
+
+  return stalls.map((s) => {
+    const alongSize = Math.max(GARAGE_W, Math.round(s.along * alongScale));
+    const depthSize = Math.max(2, Math.round(s.depth * depthScale));
+    const u0 = start + Math.round(s.u0 * alongScale);
+    const u1 = Math.min(along - 1 - minLivingAlong, u0 + alongSize - 1);
+    const v0 = Math.round(s.v0 * depthScale);
+    const v1 = Math.min(availDepth - 1, v0 + depthSize - 1);
+    return {
+      vehicle: s.vehicle,
+      shared: s.shared,
+      rect: faceRect(w, d, facing, u0, u1, v0, v1),
+    };
+  });
+}
+
+function unionRect(rects: Rect[]): Rect | null {
+  if (!rects.length) return null;
+  return rects.reduce(
+    (acc, r) => ({
+      x0: Math.min(acc.x0, r.x0),
+      z0: Math.min(acc.z0, r.z0),
+      x1: Math.max(acc.x1, r.x1),
+      z1: Math.max(acc.z1, r.z1),
+    }),
+    rects[0]!,
+  );
+}
+
 /** Vehicle bay sits on the named face. Centered unless the people door shares that face, then offset to leave a door cell. */
 export function bayRect(
   w: number,
@@ -70,31 +189,9 @@ export function bayRect(
   shareFace: boolean,
 ): Rect | null {
   if (vehicle === "none" && !hangar) return null;
-  const v = vehicle === "none" ? "thopter" : vehicle;
-  const along = facing === "south" || facing === "north" ? w : d;
-  const deep = facing === "south" || facing === "north" ? d : w;
-  const alongWant = hangar ? (v === "thopter" ? 5 : 4) : v === "thopter" ? 4 : 3;
-  const depthWant = hangar ? (v === "thopter" ? 4 : 3) : v === "thopter" ? 3 : 2;
-  const minLivingAlong = shareFace ? 1 : 0;
-  const span = Math.min(alongWant, Math.max(GARAGE_W, along - Math.max(2, minLivingAlong)));
-  const depth = Math.min(depthWant, Math.max(2, deep - 2));
-  let start: number;
-  if (shareFace) {
-    start = 0;
-  } else {
-    start = Math.max(0, Math.floor((along - span) / 2));
-  }
-  const end = Math.min(along - 1, start + span - 1);
-  if (facing === "south") {
-    return { x0: start, z0: d - depth, x1: end, z1: d - 1 };
-  }
-  if (facing === "north") {
-    return { x0: start, z0: 0, x1: end, z1: depth - 1 };
-  }
-  if (facing === "east") {
-    return { x0: w - depth, z0: start, x1: w - 1, z1: end };
-  }
-  return { x0: 0, z0: start, x1: depth - 1, z1: end };
+  const parked: ParkVehicleId[] = vehicle === "none" ? ["thopter"] : [vehicle as ParkVehicleId];
+  const world = stallsToWorld(w, d, facing, fleetStalls(parked, hangar), shareFace);
+  return world[0]?.rect ?? null;
 }
 
 export function courtRect(w: number, d: number): Rect | null {
@@ -270,9 +367,11 @@ function tipsFromSpec(spec: BriefSpec, w: number, d: number): string[] {
   } else {
     tips.push(`People door sits on the ${spec.entrance} wall.`);
   }
-  if (spec.vehicle !== "none") {
+  const parked = parkedVehicles(spec);
+  if (parked.length) {
+    const names = parked.map((v) => PARK_LABELS[v].toLowerCase()).join(", ");
     tips.push(
-      `${spec.bay} Garage Door is two cells wide and two stories tall. Keep that bay volume clear.`,
+      `${spec.bay} Garage Door is two cells wide and two stories tall. Keep the ${names} bay clear.`,
     );
   }
   if (spec.workshop) tips.push("Workshop is a walled alcove off the hall, through a Passageway.");
@@ -294,8 +393,19 @@ export function buildFromSpec(raw: BriefSpec): Plan {
 
   y.room("live", "Shelter", "Sleep, craft, and hide from the storm.");
   if (spec.airlock) y.room("foyer", "Airlock", "One-cell sand lock so storms stay outside.");
-  if (spec.vehicle !== "none") {
-    y.room("bay", "Vehicle bay", "Double-height volume behind a two-high garage door.");
+  const parked = parkedVehicles(spec);
+  if (parked.length === 1) {
+    y.room(
+      "bay",
+      "Vehicle bay",
+      `Double-height volume behind a two-high garage door for a ${PARK_LABELS[parked[0]!].toLowerCase()}.`,
+    );
+  } else if (parked.length > 1) {
+    y.room(
+      "bay",
+      "Vehicle hangar",
+      "Double-height halls behind two-high garage doors. Smaller craft share a carrier hall; a crawler gets its own well.",
+    );
   }
   if (spec.workshop) y.room("shop", "Workshop", "Benches, ore, and storage.");
   if (spec.cistern) y.room("water", "Cistern", "Water tanks under a hatch.");
@@ -304,11 +414,12 @@ export function buildFromSpec(raw: BriefSpec): Plan {
 
   y.pad(0, 0, w - 1, d - 1);
 
-  const shareFace = spec.vehicle !== "none" && spec.entrance === spec.bay;
-  const bay =
-    spec.vehicle !== "none"
-      ? bayRect(w, d, spec.bay, spec.vehicle, spec.layout === "hangar", shareFace)
-      : null;
+  const shareFace = parked.length > 0 && spec.entrance === spec.bay;
+  const worldStalls =
+    parked.length > 0
+      ? stallsToWorld(w, d, spec.bay, fleetStalls(parked, spec.layout === "hangar"), shareFace)
+      : [];
+  const bay = unionRect(worldStalls.map((s) => s.rect));
   let court = spec.layout === "courtyard" ? courtRect(w, d) : null;
   if (court && bay) court = shrinkCourtFromBay(court, bay, spec.bay);
 
@@ -335,12 +446,15 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     for (const k of rectKeys(bay)) reserved.add(k);
   }
 
-  let garageOrigin: { x: number; z: number; rot: Rot } | null = null;
-  if (bay && spec.vehicle !== "none") {
-    garageOrigin = garageOriginFromBay(bay, spec.bay);
-    reserved.add(key(garageOrigin.x, garageOrigin.z));
-    const along = garageAlong(garageOrigin.rot);
-    reserved.add(key(garageOrigin.x + along.dx, garageOrigin.z + along.dz));
+  const garageOrigins: { x: number; z: number; rot: Rot }[] = [];
+  if (worldStalls.length) {
+    for (const stall of worldStalls) {
+      const origin = garageOriginFromBay(stall.rect, spec.bay);
+      garageOrigins.push(origin);
+      reserved.add(key(origin.x, origin.z));
+      const along = garageAlong(origin.rot);
+      reserved.add(key(origin.x + along.dx, origin.z + along.dz));
+    }
   }
 
   const doorFace = faceCells(w, d, spec.entrance).filter((c) => !reserved.has(key(c.x, c.z)));
@@ -359,13 +473,31 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     }
   }
 
-  if (garageOrigin) {
-    y.punchGarage(garageOrigin.x, 0, garageOrigin.z, garageOrigin.rot, "bay");
+  for (const origin of garageOrigins) {
+    y.punchGarage(origin.x, 0, origin.z, origin.rot, "bay");
   }
 
-  if (bay) {
-    const opening = bayInteriorOpening(bay, spec.bay);
-    addRoomWalls(y, rectKeys(bay), w, d, 0, Math.min(1, top), "bay", opening);
+  if (worldStalls.length) {
+    for (const stall of worldStalls) {
+      const room =
+        worldStalls.length === 1 ? "bay" : `bay-${stall.vehicle}`;
+      if (worldStalls.length > 1) {
+        const label =
+          stall.shared.length > 1
+            ? `${PARK_LABELS[stall.vehicle]} hall`
+            : `${PARK_LABELS[stall.vehicle]} stall`;
+        const extra =
+          stall.shared.length > 1
+            ? ` Also parks ${stall.shared
+                .slice(1)
+                .map((v) => PARK_LABELS[v].toLowerCase())
+                .join(", ")}.`
+            : "";
+        y.room(room, label, `Double-height volume behind a two-high garage door.${extra}`);
+      }
+      const opening = bayInteriorOpening(stall.rect, spec.bay);
+      addRoomWalls(y, rectKeys(stall.rect), w, d, 0, Math.min(1, top), room, opening);
+    }
   }
 
   const stair =
@@ -438,10 +570,10 @@ export function buildFromSpec(raw: BriefSpec): Plan {
 
   const skipWin = new Set<string>();
   if (doorCell) skipWin.add(`${doorCell.x}:${doorCell.z}:${doorCell.rot}`);
-  if (garageOrigin) {
-    const along = garageAlong(garageOrigin.rot);
-    skipWin.add(`${garageOrigin.x}:${garageOrigin.z}:${garageOrigin.rot}`);
-    skipWin.add(`${garageOrigin.x + along.dx}:${garageOrigin.z + along.dz}:${garageOrigin.rot}`);
+  for (const origin of garageOrigins) {
+    const along = garageAlong(origin.rot);
+    skipWin.add(`${origin.x}:${origin.z}:${origin.rot}`);
+    skipWin.add(`${origin.x + along.dx}:${origin.z + along.dz}:${origin.rot}`);
   }
 
   for (const facing of ["south", "east", "north", "west"] as Facing[]) {
@@ -502,10 +634,7 @@ function pieceOnFacing(
   return p.x === b.minX;
 }
 
-function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
-  if (spec.vehicle === "none") return true;
-  const garage = plan.pieces.find((p) => p.type === "garage_door");
-  if (!garage) return false;
+function garageHasClearance(plan: Plan, garage: { x: number; z: number; rot: Rot }): boolean {
   const along = garageAlong(garage.rot);
   const inn = inward(facingFromRot(garage.rot));
   const cells: Array<[number, number]> = [
@@ -518,6 +647,13 @@ function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
     plan.pieces.filter((p) => p.type === "floor" && p.y === 1).map((p) => key(p.x, p.z)),
   );
   return cells.some(([x, z]) => !floor1.has(key(x, z)));
+}
+
+function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
+  if (parkedVehicles(spec).length === 0) return true;
+  const garages = plan.pieces.filter((p) => p.type === "garage_door");
+  if (!garages.length) return false;
+  return garages.every((g) => garageHasClearance(plan, g));
 }
 
 export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
@@ -565,10 +701,12 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
       ok: (counts.door ?? 0) >= 1 && (counts.passageway ?? 0) >= 1,
     });
   }
-  if (spec.vehicle !== "none") {
+  const parked = parkedVehicles(spec);
+  if (parked.length) {
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
     checks.push({
       label: `Two-high garage on ${spec.bay}`,
-      ok: Boolean(garage && pieceOnFacing(garage, spec.bay, b)),
+      ok: garages.length >= 1 && garages.every((g) => pieceOnFacing(g, spec.bay, b)),
     });
     checks.push({
       label: "Double-height vehicle bay",

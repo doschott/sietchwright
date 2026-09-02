@@ -263,5 +263,101 @@ describe("buildFromSpec", () => {
     assert.equal(s.vehicle, "buggy");
     assert.equal(s.bay, "west");
     assert.equal(s.stories, 2);
+    assert.deepEqual(s.vehicles, ["buggy"]);
+  });
+
+  it("parseSpec reads a vehicles array and picks the largest as primary", () => {
+    const s = parseSpec({
+      layout: "hangar",
+      vehicles: ["bike", "thopter", "buggy"],
+      entrance: "east",
+      bay: "south",
+    });
+    assert.deepEqual(s.vehicles, ["thopter", "buggy", "bike"]);
+    assert.equal(s.vehicle, "thopter");
+    assert.equal(s.size, "compound");
+  });
+
+  it("same-face people door plus a 9-wide fleet needs an advanced pad", () => {
+    const s = parseSpec({
+      layout: "hangar",
+      vehicles: ["thopter", "buggy", "bike"],
+      entrance: "south",
+      bay: "south",
+    });
+    assert.equal(s.size, "advanced");
+  });
+
+  it("thopter + buggy + bike hangar gets three south garage doors on a 9×6 pad", () => {
+    const spec: BriefSpec = {
+      size: "compound",
+      stories: 2,
+      layout: "hangar",
+      entrance: "east",
+      vehicle: "thopter",
+      vehicles: ["thopter", "buggy", "bike"],
+      bay: "south",
+      airlock: false,
+      cistern: false,
+      workshop: false,
+      loft: false,
+      lookout: false,
+    };
+    assertChecks(spec, "fleet-three");
+    const plan = buildFromSpec(spec);
+    const b = boundsOf(plan);
+    assert.equal(b.maxX - b.minX + 1, 9);
+    assert.equal(b.maxZ - b.minZ + 1, 6);
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
+    assert.equal(garages.length, 3);
+    assert.ok(garages.every((g) => g.rot === FACE_ROT.south && g.z === b.maxZ));
+    const door = plan.pieces.find((p) => p.type === "door")!;
+    assert.equal(door.rot, FACE_ROT.east);
+  });
+
+  it("carrier + crawler + small craft fit an advanced 10×10 with two garage halls", () => {
+    const spec: BriefSpec = {
+      size: "advanced",
+      stories: 2,
+      layout: "hangar",
+      entrance: "east",
+      vehicle: "carrier",
+      vehicles: ["thopter", "buggy", "bike", "carrier", "crawler"],
+      bay: "south",
+      airlock: true,
+      cistern: true,
+      workshop: true,
+      loft: true,
+      lookout: false,
+    };
+    assertChecks(spec, "fleet-all");
+    const plan = buildFromSpec(spec);
+    const b = boundsOf(plan);
+    assert.equal(b.maxX - b.minX + 1, 10);
+    assert.equal(b.maxZ - b.minZ + 1, 10);
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
+    assert.equal(garages.length, 2);
+    assert.ok(garages.every((g) => g.rot === FACE_ROT.south && g.z === b.maxZ));
+    assert.ok(plan.rooms.some((r) => /carrier/i.test(r.name)));
+    assert.ok(plan.rooms.some((r) => /crawler/i.test(r.name)));
+  });
+
+  it("legacy single buggy still raises one garage", () => {
+    const spec: BriefSpec = {
+      size: "keep",
+      stories: 2,
+      layout: "box",
+      entrance: "north",
+      vehicle: "buggy",
+      bay: "west",
+      airlock: false,
+      cistern: false,
+      workshop: false,
+      loft: false,
+      lookout: false,
+    };
+    assertChecks(spec, "legacy-buggy");
+    const plan = buildFromSpec(spec);
+    assert.equal(plan.pieces.filter((p) => p.type === "garage_door").length, 1);
   });
 });

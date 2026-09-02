@@ -1,15 +1,28 @@
 import type { Rot } from "./grid.ts";
+import {
+  PARK_LABELS,
+  PARK_VEHICLES,
+  describeFleet,
+  fleetNeed,
+  isParkVehicle,
+  primaryVehicle,
+  uniqueVehicles,
+  type ParkVehicleId,
+} from "./vehicles.ts";
+
+export { PARK_LABELS, PARK_VEHICLES, isParkVehicle, uniqueVehicles, primaryVehicle };
+export type { ParkVehicleId };
 
 export const FACINGS = ["south", "east", "north", "west"] as const;
 export type Facing = (typeof FACINGS)[number];
 
-export const SIZES = ["starter", "compact", "keep", "compound"] as const;
+export const SIZES = ["starter", "compact", "keep", "compound", "advanced"] as const;
 export type SizeId = (typeof SIZES)[number];
 
 export const LAYOUTS = ["box", "courtyard", "hangar", "tower"] as const;
 export type LayoutId = (typeof LAYOUTS)[number];
 
-export const VEHICLES = ["none", "bike", "buggy", "thopter"] as const;
+export const VEHICLES = ["none", ...PARK_VEHICLES] as const;
 export type VehicleId = (typeof VEHICLES)[number];
 
 export type BriefSpec = {
@@ -18,6 +31,8 @@ export type BriefSpec = {
   layout: LayoutId;
   entrance: Facing;
   vehicle: VehicleId;
+  /** Parked vehicles. Empty means none. If omitted, derived from `vehicle`. */
+  vehicles?: ParkVehicleId[];
   bay: Facing;
   airlock: boolean;
   cistern: boolean;
@@ -32,6 +47,7 @@ export const DEFAULT_SPEC: BriefSpec = {
   layout: "box",
   entrance: "south",
   vehicle: "none",
+  vehicles: [],
   bay: "south",
   airlock: true,
   cistern: true,
@@ -45,6 +61,7 @@ export const SIZE_OPTS: { id: SizeId; label: string }[] = [
   { id: "compact", label: "Compact 6×5" },
   { id: "keep", label: "Keep 7×7" },
   { id: "compound", label: "Compound 9×6" },
+  { id: "advanced", label: "Advanced 10×10" },
 ];
 
 export const LAYOUT_OPTS: { id: LayoutId; label: string }[] = [
@@ -56,10 +73,17 @@ export const LAYOUT_OPTS: { id: LayoutId; label: string }[] = [
 
 export const VEHICLE_OPTS: { id: VehicleId; label: string }[] = [
   { id: "none", label: "None" },
-  { id: "bike", label: "Bike" },
+  { id: "bike", label: "Sandbike" },
   { id: "buggy", label: "Buggy" },
   { id: "thopter", label: "Ornithopter" },
+  { id: "carrier", label: "Carrier" },
+  { id: "crawler", label: "Crawler" },
 ];
+
+export const PARK_OPTS: { id: ParkVehicleId; label: string }[] = PARK_VEHICLES.map((id) => ({
+  id,
+  label: PARK_LABELS[id],
+}));
 
 export const FACING_OPTS: { id: Facing; label: string }[] = [
   { id: "south", label: "South" },
@@ -84,6 +108,7 @@ export const SIZE_DIMS: Record<SizeId, { w: number; d: number }> = {
   compact: { w: 6, d: 5 },
   keep: { w: 7, d: 7 },
   compound: { w: 9, d: 6 },
+  advanced: { w: 10, d: 10 },
 };
 
 export const FACE_ROT: Record<Facing, Rot> = {
@@ -106,13 +131,23 @@ export function isVehicle(v: unknown): v is VehicleId {
   return VEHICLES.includes(v as VehicleId);
 }
 
+export function parkedVehicles(spec: Pick<BriefSpec, "vehicle" | "vehicles">): ParkVehicleId[] {
+  if (spec.vehicles) return uniqueVehicles(spec.vehicles);
+  if (spec.vehicle !== "none" && isParkVehicle(spec.vehicle)) return [spec.vehicle];
+  return [];
+}
+
+function sameParked(a: BriefSpec, b: BriefSpec): boolean {
+  return parkedVehicles(a).join(",") === parkedVehicles(b).join(",");
+}
+
 export function specsEqual(a: BriefSpec, b: BriefSpec): boolean {
   return (
     a.size === b.size &&
     a.stories === b.stories &&
     a.layout === b.layout &&
     a.entrance === b.entrance &&
-    a.vehicle === b.vehicle &&
+    sameParked(a, b) &&
     a.bay === b.bay &&
     a.airlock === b.airlock &&
     a.cistern === b.cistern &&
@@ -122,8 +157,41 @@ export function specsEqual(a: BriefSpec, b: BriefSpec): boolean {
   );
 }
 
+export function sizeFitsFleet(
+  size: SizeId,
+  spec: Pick<BriefSpec, "vehicles" | "vehicle" | "layout" | "bay" | "entrance">,
+): boolean {
+  const vehicles = parkedVehicles(spec);
+  if (!vehicles.length) return true;
+  const hangar = spec.layout === "hangar";
+  const shareFace = spec.entrance === spec.bay;
+  const need = fleetNeed(vehicles, hangar, shareFace);
+  const { w, d } = SIZE_DIMS[size];
+  const along = spec.bay === "south" || spec.bay === "north" ? w : d;
+  const deep = spec.bay === "south" || spec.bay === "north" ? d : w;
+  if (along < need.along) return false;
+  if (need.rigid) return deep >= need.depth;
+  return Math.max(2, deep - 2) >= 2;
+}
+
+export function minSizeForFleet(
+  spec: Pick<BriefSpec, "vehicles" | "vehicle" | "layout" | "bay" | "entrance">,
+): SizeId {
+  const hangar = spec.layout === "hangar";
+  for (const id of SIZES) {
+    if (hangar && id === "starter") continue;
+    if (sizeFitsFleet(id, spec)) return id;
+  }
+  return "advanced";
+}
+
+function syncParked(spec: BriefSpec): BriefSpec {
+  const vehicles = parkedVehicles(spec);
+  return { ...spec, vehicles, vehicle: primaryVehicle(vehicles) };
+}
+
 export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: string[] } {
-  const next: BriefSpec = { ...spec };
+  const next: BriefSpec = syncParked({ ...spec });
   const notes: string[] = [];
   if (next.layout === "tower" && next.size === "compound") {
     next.size = "keep";
@@ -137,17 +205,31 @@ export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: str
     next.size = "compact";
     notes.push("A hangar needs a 6×5 pad.");
   }
-  if (next.layout === "hangar" && next.vehicle === "none") {
+  if (next.layout === "hangar" && next.vehicles!.length === 0) {
+    next.vehicles = ["thopter"];
     next.vehicle = "thopter";
     notes.push("A hangar parks an ornithopter.");
+  }
+  const minSize = minSizeForFleet(next);
+  if (SIZES.indexOf(next.size) < SIZES.indexOf(minSize)) {
+    next.size = minSize;
+    const { w, d } = SIZE_DIMS[minSize];
+    notes.push(
+      `Parking ${describeFleet(next.vehicles!)} needs a ${w}×${d} pad (${SIZE_OPTS.find((o) => o.id === minSize)?.label ?? minSize}).`,
+    );
   }
   if (next.layout === "tower" && next.stories < 3) {
     next.stories = 3;
     notes.push("A watchtower is three stories.");
   }
-  if (next.vehicle !== "none" && next.stories < 2) {
+  if (next.vehicles!.length > 0 && next.stories < 2) {
     next.stories = 2;
     notes.push("A two-high garage needs two stories.");
+  }
+  if (next.vehicles!.includes("carrier") && next.stories < 3) {
+    notes.push(
+      "A carrier wants three wall-tiles of height in-game. This schematic still uses the two-high CHOAM garage door; leave the hall open or add a third story when you fly one.",
+    );
   }
   if ((next.loft || next.lookout) && next.stories < 2) {
     next.stories = 2;
@@ -157,7 +239,7 @@ export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: str
     next.stories = 3;
     notes.push("Tower lookout sits on a third story.");
   }
-  return { spec: next, notes };
+  return { spec: syncParked(next), notes };
 }
 
 export function normalizeSpec(spec: BriefSpec): BriefSpec {
@@ -168,12 +250,21 @@ export function parseSpec(raw: unknown): BriefSpec {
   const o = (raw ?? {}) as Record<string, unknown>;
   const storiesRaw = Number(o.stories);
   const stories: 1 | 2 | 3 = storiesRaw === 3 ? 3 : storiesRaw === 1 ? 1 : 2;
+  const vehicles = uniqueVehicles(o.vehicles);
+  const vehicleField = isVehicle(o.vehicle) ? o.vehicle : DEFAULT_SPEC.vehicle;
+  const seeded =
+    vehicles.length > 0
+      ? vehicles
+      : vehicleField !== "none" && isParkVehicle(vehicleField)
+        ? [vehicleField]
+        : [];
   return normalizeSpec({
     size: isSize(o.size) ? o.size : DEFAULT_SPEC.size,
     stories,
     layout: isLayout(o.layout) ? o.layout : DEFAULT_SPEC.layout,
     entrance: isFacing(o.entrance) ? o.entrance : DEFAULT_SPEC.entrance,
-    vehicle: isVehicle(o.vehicle) ? o.vehicle : DEFAULT_SPEC.vehicle,
+    vehicle: primaryVehicle(seeded),
+    vehicles: seeded,
     bay: isFacing(o.bay) ? o.bay : DEFAULT_SPEC.bay,
     airlock: o.airlock !== false,
     cistern: o.cistern !== false,
@@ -190,10 +281,9 @@ export function describeSpec(spec: BriefSpec): string {
     `${s.stories}-story ${w}×${d} ${s.layout === "box" ? "box" : s.layout}`,
     `${s.entrance} ${s.airlock ? "airlock" : "people door"}`,
   ];
-  if (s.vehicle !== "none") {
-    const v =
-      s.vehicle === "thopter" ? "ornithopter" : s.vehicle === "buggy" ? "buggy" : "bike";
-    bits.push(`${s.bay} two-high garage for a ${v}`);
+  const parked = parkedVehicles(s);
+  if (parked.length) {
+    bits.push(`${s.bay} two-high garage for ${describeFleet(parked)}`);
   }
   const extras = EXTRA_OPTS.filter((e) => s[e.key])
     .map((e) => e.label.toLowerCase())
@@ -213,14 +303,22 @@ export function nameFromSpec(spec: BriefSpec): string {
         : s.layout === "courtyard"
           ? "courtyard"
           : "shelter";
-  const park =
-    s.vehicle === "thopter"
-      ? " · 'thopter"
-      : s.vehicle === "buggy"
-        ? " · buggy"
-        : s.vehicle === "bike"
-          ? " · bike"
-          : "";
+  const parked = parkedVehicles(s);
+  let park = "";
+  if (parked.length === 1) {
+    park =
+      parked[0] === "thopter"
+        ? " · 'thopter"
+        : parked[0] === "buggy"
+          ? " · buggy"
+          : parked[0] === "bike"
+            ? " · bike"
+            : parked[0] === "carrier"
+              ? " · carrier"
+              : " · crawler";
+  } else if (parked.length > 1) {
+    park = " · fleet";
+  }
   return `${w}×${d} ${s.stories}-story ${shape}${park}`;
 }
 
@@ -234,6 +332,7 @@ export const PRESETS: { id: string; label: string; spec: BriefSpec }[] = [
       layout: "courtyard",
       entrance: "south",
       vehicle: "bike",
+      vehicles: ["bike"],
       bay: "west",
       airlock: true,
       cistern: true,
@@ -251,6 +350,7 @@ export const PRESETS: { id: string; label: string; spec: BriefSpec }[] = [
       layout: "box",
       entrance: "south",
       vehicle: "none",
+      vehicles: [],
       bay: "south",
       airlock: false,
       cistern: true,
@@ -268,8 +368,27 @@ export const PRESETS: { id: string; label: string; spec: BriefSpec }[] = [
       layout: "hangar",
       entrance: "east",
       vehicle: "thopter",
+      vehicles: ["thopter"],
       bay: "south",
       airlock: false,
+      cistern: true,
+      workshop: true,
+      loft: true,
+      lookout: false,
+    },
+  },
+  {
+    id: "fleet",
+    label: "Advanced fleet hangar",
+    spec: {
+      size: "advanced",
+      stories: 2,
+      layout: "hangar",
+      entrance: "east",
+      vehicle: "carrier",
+      vehicles: ["thopter", "buggy", "bike", "carrier", "crawler"],
+      bay: "south",
+      airlock: true,
       cistern: true,
       workshop: true,
       loft: true,
@@ -285,6 +404,7 @@ export const PRESETS: { id: string; label: string; spec: BriefSpec }[] = [
       layout: "tower",
       entrance: "south",
       vehicle: "none",
+      vehicles: [],
       bay: "south",
       airlock: false,
       cistern: false,
@@ -302,6 +422,7 @@ export const PRESETS: { id: string; label: string; spec: BriefSpec }[] = [
       layout: "box",
       entrance: "south",
       vehicle: "none",
+      vehicles: [],
       bay: "south",
       airlock: true,
       cistern: true,

@@ -37,11 +37,13 @@ Zoom is a pulse (`zoomBy('in' | 'out' | 'fit')`) consumed by `CameraRig` in `src
 | Path | Role |
 |------|------|
 | `src/lib/spec.ts` | Questions, presets, constraints |
+| `src/lib/vehicles.ts` | Stall sizes and fleet packing |
 | `src/lib/build-from-spec.ts` | Deterministic geometry |
+| `src/lib/cutaway.ts` | Inside-view hide / ghost rules |
 | `src/lib/pieces.ts` | CHOAM Facility table |
 | `src/lib/plan.ts` | Plan, bounds, piece counts |
 | `src/lib/site.ts` | Canonical URL |
-| `src/lib/camera.ts` | Frame and zoom math |
+| `src/lib/camera.ts` | Frame, zoom, and compass yaw |
 | `src/lib/storage.ts` | localStorage v3 |
 | `src/components/chrome/` | Plan sheet, kit, inspector, dock, zoom |
 | `src/components/scene/` | 3D yard |

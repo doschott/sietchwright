@@ -1,5 +1,5 @@
 import { Billboard } from "@react-three/drei";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   deckY,
@@ -26,6 +26,8 @@ type Props = {
   hovered: boolean;
   showMarker: boolean;
   hatchAsRoof: boolean;
+  ghost?: boolean;
+  hidden?: boolean;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
 };
@@ -477,15 +479,48 @@ export function PieceMesh({
   hovered,
   showMarker,
   hatchAsRoof,
+  ghost = false,
+  hidden = false,
   onHover,
   onSelect,
 }: Props) {
   const def = PIECES[piece.type];
   const color = selected || hovered ? "#e6d7c2" : def.stone;
   const { pos, rotY, marker } = pose(piece, hatchAsRoof);
+  const groupRef = useRef<THREE.Group>(null);
+
+  useLayoutEffect(() => {
+    const root = groupRef.current;
+    if (!root) return;
+    root.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of materials) {
+        if (!mat || !("opacity" in mat)) continue;
+        const m = mat as THREE.MeshStandardMaterial;
+        if (m.userData._baseOpacity == null) {
+          m.userData._baseOpacity = m.opacity;
+          m.userData._baseTransparent = m.transparent;
+          m.userData._baseDepthWrite = m.depthWrite;
+        }
+        if (ghost) {
+          m.transparent = true;
+          m.opacity = Math.min(0.18, m.userData._baseOpacity);
+          m.depthWrite = false;
+        } else {
+          m.opacity = m.userData._baseOpacity;
+          m.transparent = m.userData._baseTransparent;
+          m.depthWrite = m.userData._baseDepthWrite;
+        }
+      }
+    });
+  }, [ghost, piece.id, selected, hovered, color]);
+
+  if (hidden) return null;
 
   return (
     <group
+      ref={groupRef}
       position={pos}
       rotation={[0, rotY, 0]}
       onPointerOver={(e) => {

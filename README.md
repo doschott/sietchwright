@@ -22,9 +22,9 @@ It stays in your browser. No account. No database. The last yard is saved in `lo
 
 ## What you can do
 
-1. **Plan.** Pad, stories, box / courtyard / hangar / watchtower, people door, vehicle, extras.
-2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. A vehicle gets a two-cell-wide, two-story garage on the wall you named.
-3. **See.** Iso, top, and south cameras. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
+1. **Plan.** Pad, stories, box / courtyard / hangar / watchtower, people door, parked vehicles (multi-select), extras.
+2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. Each vehicle stall gets a two-cell-wide, two-story garage on the wall you named.
+3. **See.** Iso, top, and south cameras. **Inside** hides the roof so you can read rooms. A **N** marker under the name card is yard north. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
 4. **Modify.** Change answers and raise again, or place extra CHOAM pieces by hand from the kit.
 5. **Build in-game.** Inspector lists in-game names, cell, story, facing, and a granite bill.
 6. **Share.** Tweet the name, piece count, and brief. The link is always `https://sietchwright.com`.
@@ -81,9 +81,9 @@ npm run build
 
 ## CHOAM notes
 
-- Grid is square. Rotation `0` is south (`+Z`), `90` east, `180` north, `270` west.
+- Grid is square. Rotation `0` is south (`+Z`), `90` east, `180` north, `270` west. The N compass under the title tracks yard north (`−Z`).
 - **Garage Door** is modeled as two cells along the wall and two stories tall. Funcom has not published the cell math; measure in-client if you are doing a precision hangar. A 1-story request with a vehicle is raised to two stories so the door fits.
-- Courtyard leaves an open inner court. Hangar keeps a double-height bay.
+- Courtyard leaves an open inner court. Hangar keeps a double-height bay sized for every vehicle you ticked.
 - Granite in the bill is CHOAM **Facility** (Advanced Construction Kit), from [awakening.wiki](https://awakening.wiki/CHOAM_Facility_Set).
 
 ## Contributing

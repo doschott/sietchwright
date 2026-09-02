@@ -8,9 +8,11 @@ import {
   DEFAULT_SPEC,
   applyConstraints,
   describeSpec,
+  isParkVehicle,
   normalizeSpec,
   type BriefSpec,
 } from "./spec.ts";
+import { primaryVehicle, uniqueVehicles } from "./vehicles.ts";
 import { writeSave } from "./storage";
 import type { ZoomAction } from "./camera";
 
@@ -39,6 +41,8 @@ type State = {
   chromeHidden: boolean;
   zoomPulse: number;
   zoomAction: ZoomAction;
+  cutaway: boolean;
+  camYaw: number;
   setSpec: (patch: Partial<BriefSpec>) => void;
   applySpec: (spec: BriefSpec) => void;
   setPlan: (plan: Plan) => void;
@@ -54,6 +58,8 @@ type State = {
   toggleOverlay: (overlay: Exclude<Overlay, "none">) => void;
   toggleChrome: () => void;
   zoomBy: (action: ZoomAction) => void;
+  toggleCutaway: () => void;
+  setCamYaw: (yaw: number) => void;
   removeSelected: () => void;
   rotateSelected: () => void;
   placeAt: (x: number, z: number, rot: number, story: number) => void;
@@ -101,8 +107,20 @@ export const useYard = create<State>((set, get) => ({
   chromeHidden: false,
   zoomPulse: 0,
   zoomAction: "fit",
+  cutaway: false,
+  camYaw: 0,
   setSpec: (patch) => {
-    const { spec, notes } = applyConstraints({ ...get().spec, ...patch });
+    const cur = get().spec;
+    const merged: BriefSpec = { ...cur, ...patch };
+    if (Object.prototype.hasOwnProperty.call(patch, "vehicles")) {
+      merged.vehicles = uniqueVehicles(patch.vehicles);
+      merged.vehicle = primaryVehicle(merged.vehicles);
+    } else if (Object.prototype.hasOwnProperty.call(patch, "vehicle") && patch.vehicle !== undefined) {
+      merged.vehicles =
+        patch.vehicle === "none" || !isParkVehicle(patch.vehicle) ? [] : [patch.vehicle];
+      merged.vehicle = primaryVehicle(merged.vehicles);
+    }
+    const { spec, notes } = applyConstraints(merged);
     const brief = describeSpec(spec);
     set({ spec, brief, notes });
     persist({ spec, brief });
@@ -152,6 +170,11 @@ export const useYard = create<State>((set, get) => ({
     }),
   zoomBy: (zoomAction) =>
     set({ zoomAction, zoomPulse: get().zoomPulse + 1, chromeHidden: false }),
+  toggleCutaway: () => set({ cutaway: !get().cutaway }),
+  setCamYaw: (camYaw) => {
+    if (Math.abs(camYaw - get().camYaw) < 0.03) return;
+    set({ camYaw });
+  },
   toggleMarkers: () => {
     const showMarkers = !get().showMarkers;
     set({ showMarkers });
@@ -243,6 +266,7 @@ export const useYard = create<State>((set, get) => ({
       chromeHidden: false,
       zoomAction: "fit",
       zoomPulse: get().zoomPulse + 1,
+      cutaway: false,
     });
     persist({ plan, brief, spec, builtSpec: null });
   },

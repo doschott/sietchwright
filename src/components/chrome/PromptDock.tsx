@@ -6,16 +6,18 @@ import {
   EXTRA_OPTS,
   FACING_OPTS,
   LAYOUT_OPTS,
+  PARK_OPTS,
   PRESETS,
   SIZE_OPTS,
-  VEHICLE_OPTS,
   describeSpec,
+  parkedVehicles,
+  sizeFitsFleet,
   specsEqual,
   type BriefSpec,
   type Facing,
   type LayoutId,
+  type ParkVehicleId,
   type SizeId,
-  type VehicleId,
 } from "@/lib/spec";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -64,6 +66,70 @@ function ChipGroup<T extends string>({
   );
 }
 
+function MultiChipGroup({
+  question,
+  values,
+  options,
+  onToggle,
+  onClear,
+  noneLabel,
+  noneDisabled,
+  hint,
+}: {
+  question: string;
+  values: ParkVehicleId[];
+  options: { id: ParkVehicleId; label: string }[];
+  onToggle: (id: ParkVehicleId) => void;
+  onClear: () => void;
+  noneLabel: string;
+  noneDisabled?: boolean;
+  hint?: string;
+}) {
+  const noneOn = values.length === 0;
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-xs font-medium tracking-wide text-muted">{question}</p>
+      <div className="flex flex-wrap gap-1">
+        <button
+          type="button"
+          aria-pressed={noneOn}
+          disabled={noneDisabled}
+          onClick={onClear}
+          className={cn(
+            "h-10 rounded-md px-3 text-sm",
+            noneOn
+              ? "bg-accent text-accent-fg"
+              : "border border-border bg-elevated text-muted hover:text-fg",
+            noneDisabled && "opacity-40",
+          )}
+        >
+          {noneLabel}
+        </button>
+        {options.map((o) => {
+          const on = values.includes(o.id);
+          return (
+            <button
+              key={o.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onToggle(o.id)}
+              className={cn(
+                "h-10 rounded-md px-3 text-sm",
+                on
+                  ? "bg-accent text-accent-fg"
+                  : "border border-border bg-elevated text-muted hover:text-fg",
+              )}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {hint ? <p className="mt-1 text-xs text-subtle">{hint}</p> : null}
+    </div>
+  );
+}
+
 const STEPS = ["Pad", "Doors", "Inside"] as const;
 
 export function PromptDock() {
@@ -80,8 +146,16 @@ export function PromptDock() {
   const dirty = Boolean(builtSpec && !specsEqual(spec, builtSpec));
   const [step, setStep] = useState(0);
 
-  const needsTwo = spec.vehicle !== "none" || spec.loft || spec.lookout || spec.layout === "tower";
+  const parked = parkedVehicles(spec);
+  const needsTwo = parked.length > 0 || spec.loft || spec.lookout || spec.layout === "tower";
   const hangarLike = spec.layout === "hangar" || spec.layout === "courtyard";
+
+  function toggleVehicle(id: ParkVehicleId) {
+    const has = parked.includes(id);
+    let next = has ? parked.filter((v) => v !== id) : [...parked, id];
+    if (spec.layout === "hangar" && next.length === 0) next = ["thopter"];
+    setSpec({ vehicles: next });
+  }
 
   function raise() {
     setGenerating(true);
@@ -148,15 +222,18 @@ export function PromptDock() {
                 ...o,
                 disabled:
                   (hangarLike && o.id === "starter") ||
-                  (spec.layout === "tower" && o.id === "compound"),
+                  (spec.layout === "tower" && o.id === "compound") ||
+                  (parked.length > 0 && !sizeFitsFleet(o.id, spec)),
               }))}
               onChange={(size: SizeId) => setSpec({ size })}
               hint={
-                spec.layout === "hangar"
-                  ? "Hangar needs at least Compact 6×5."
-                  : spec.layout === "courtyard"
-                    ? "Courtyard needs at least Compact 6×5."
-                    : undefined
+                parked.includes("carrier") || (parked.includes("crawler") && parked.length > 1)
+                  ? "A carrier plus a crawler fills an Advanced 10×10 pad."
+                  : spec.layout === "hangar"
+                    ? "Hangar needs at least Compact 6×5. A 'thopter, buggy, and bike need Compound 9×6."
+                    : spec.layout === "courtyard"
+                      ? "Courtyard needs at least Compact 6×5."
+                      : undefined
               }
             />
             <ChipGroup
@@ -171,7 +248,7 @@ export function PromptDock() {
               hint={
                 spec.layout === "tower"
                   ? "A watchtower is three stories."
-                  : spec.vehicle !== "none"
+                  : parked.length
                     ? "Garage doors are two cells tall, so two stories."
                     : undefined
               }
@@ -209,16 +286,21 @@ export function PromptDock() {
               options={FACING_OPTS}
               onChange={(entrance: Facing) => setSpec({ entrance })}
             />
-            <ChipGroup
-              question="Park a vehicle?"
-              value={spec.vehicle}
-              options={VEHICLE_OPTS.map((o) => ({
-                ...o,
-                disabled: spec.layout === "hangar" && o.id === "none",
-              }))}
-              onChange={(vehicle: VehicleId) => setSpec({ vehicle })}
+            <MultiChipGroup
+              question="Park which vehicles?"
+              values={parked}
+              options={PARK_OPTS}
+              onToggle={toggleVehicle}
+              onClear={() => setSpec({ vehicle: "none", vehicles: [] })}
+              noneLabel="None"
+              noneDisabled={spec.layout === "hangar"}
+              hint={
+                spec.layout === "hangar"
+                  ? "Most hangars park a 'thopter, buggy, and bike. Carrier and crawler also fit an Advanced 10×10 pad. Tap every vehicle you own."
+                  : "Tap every vehicle you park. A hangar shape sizes the bay for the whole set."
+              }
             />
-            {spec.vehicle !== "none" ? (
+            {parked.length ? (
               <ChipGroup
                 question="Garage door opens toward?"
                 value={spec.bay}

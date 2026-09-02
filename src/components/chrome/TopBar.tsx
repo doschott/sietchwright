@@ -6,6 +6,40 @@ import { shareIntentUrl, sharePageUrl } from "@/lib/site";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+export function NorthIndicator({ yaw, compact = false }: { yaw: number; compact?: boolean }) {
+  return (
+    <div
+      className={cn("flex items-center gap-2", compact ? "" : "mt-2")}
+      title="Yard north. The pad's north wall is −Z (rotation 180)."
+    >
+      <div
+        className="relative size-10 shrink-0 text-center"
+        aria-hidden="true"
+        style={{ transform: `rotate(${yaw}rad)` }}
+      >
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 font-display text-[11px] font-semibold leading-none text-accent">
+          N
+        </span>
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[8px] leading-none text-subtle">
+          S
+        </span>
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[8px] leading-none text-subtle">
+          E
+        </span>
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[8px] leading-none text-subtle">
+          W
+        </span>
+        <span className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg" />
+      </div>
+      {compact ? null : (
+        <p className="text-[10px] leading-tight text-subtle">
+          North
+        </p>
+      )}
+    </div>
+  );
+}
+
 function XMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -44,6 +78,9 @@ export function TopBar() {
   const history = useYard((s) => s.history);
   const pieceCount = useYard((s) => s.plan.pieces.length);
   const toggleChrome = useYard((s) => s.toggleChrome);
+  const cutaway = useYard((s) => s.cutaway);
+  const toggleCutaway = useYard((s) => s.toggleCutaway);
+  const camYaw = useYard((s) => s.camYaw);
 
   return (
     <header className="flex items-start justify-between gap-3">
@@ -52,6 +89,7 @@ export function TopBar() {
           Sietchwright
         </p>
         <p className="text-xs text-muted">CHOAM-standard base planner</p>
+        <NorthIndicator yaw={camYaw} />
       </div>
       <div className="flex flex-wrap justify-end gap-1.5">
         <div className="flex overflow-hidden rounded-md border border-border bg-surface/92 shadow-panel">
@@ -74,6 +112,18 @@ export function TopBar() {
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={toggleCutaway}
+            aria-pressed={cutaway}
+            title="See inside the build (I)"
+            className={cn(
+              "h-11 px-3 text-xs",
+              cutaway ? "bg-accent text-accent-fg" : "text-muted hover:text-fg",
+            )}
+          >
+            Inside
+          </button>
         </div>
         <Button
           variant="secondary"

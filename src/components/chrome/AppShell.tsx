@@ -22,7 +22,7 @@ import { Inspector } from "./Inspector";
 import { Legend } from "./Legend";
 import { Palette } from "./Palette";
 import { PromptDock } from "./PromptDock";
-import { TopBar } from "./TopBar";
+import { NorthIndicator, TopBar } from "./TopBar";
 import { ZoomControls } from "./ZoomControls";
 
 export function AppShell() {
@@ -33,6 +33,7 @@ export function AppShell() {
   const chromeHidden = useYard((s) => s.chromeHidden);
   const toggleChrome = useYard((s) => s.toggleChrome);
   const pieceCount = useYard((s) => s.plan.pieces.length);
+  const camYaw = useYard((s) => s.camYaw);
   const desktop = useDesktop();
 
   useEffect(() => {
@@ -61,7 +62,10 @@ export function AppShell() {
       </div>
 
       {chromeHidden ? (
-        <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-3">
+        <div className="pointer-events-none absolute inset-0 flex items-start justify-between p-3">
+          <div className="pointer-events-none rounded-xl border border-border bg-surface/92 px-2 py-2 shadow-panel">
+            <NorthIndicator yaw={camYaw} compact />
+          </div>
           <div className="pointer-events-auto flex flex-col items-end gap-2">
             <Button variant="secondary" size="sm" onClick={toggleChrome}>
               Show menus

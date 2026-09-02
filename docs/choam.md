@@ -53,7 +53,8 @@ Launch **Wide Door** is a different piece: two cells wide, one story. Buggies hi
 | starter | 4×4 | Tight. Tutorial in-game is 2×2; a real basic fief is closer to 5×5. |
 | compact | 6×5 | Default. |
 | keep | 7×7 | Courtyard works here. |
-| compound | 9×6 | Hangars. |
+| compound | 9×6 | Scout hangars, or a 'thopter + buggy + bike row. |
+| advanced | 10×10 | Advanced Sub-Fief. Carrier + crawler + smaller craft. |
 
 Basic Sub-Fief usable pad is about **5×5** once walls eat a cell. Advanced Sub-Fief is on the order of **10×10** with staking. We do not simulate staking or worms.
 
@@ -61,14 +62,24 @@ Basic Sub-Fief usable pad is about **5×5** once walls eat a cell. Advanced Sub-
 
 Door size is not parking size. Leave walk-around unless you want a coffin garage.
 
-| Vehicle | Comfortable empty floor | Height |
-|---------|-------------------------|--------|
-| Sandbike | 1×2 | 1 wall |
-| Buggy | 2×2 | 1.5–2 walls |
-| Scout ornithopter | 2×3 to 3×3 | 2 walls |
-| Assault / carrier | larger than our thopter bay | 2+ walls |
+| Vehicle | Tight / in-game | Planner stall (walk-around) | Height |
+|---------|-----------------|-----------------------------|--------|
+| Sandbike | 1×1 to 1×2 | 2×2 (solo hangar still 4×3) | 1 wall |
+| Buggy | 2×2 (1×2 is tight) | 3×3 | 1.5–2 walls |
+| Scout ornithopter | 2×3 to 3×3 | 4×4 (solo hangar still 5×4) | 2 walls |
+| Sandcrawler | 3×4 well | 4×4 dedicated stall | 2 walls |
+| Carrier ornithopter | 5×6 min, 6×10 proper; some builders use 4×7 | 6×6 hall | 3 walls (we still emit a two-high garage door) |
 
-Sietchwright's thopter bay is sized for a **scout** plus walk-around, not a carrier.
+Sources: [awakening.wiki Carrier Ornithopter](https://awakening.wiki/Carrier_Ornithopter) (5×6 min / 6×10 proper), community hangar guides (crawler 3×4 well, scout 2×3, buggy 2×2), and the existing CHOAM notes above.
+
+**Fleet packing**
+
+- Bike, buggy, and scout each get their own stall when no carrier is selected. A 'thopter + buggy + bike row is 9×4 and fits Compound 9×6.
+- A **carrier hall is 6×6**. Scout, buggy, and bike park in that hall (they fit under/beside a landed carrier).
+- A **crawler always gets its own 4×4 well**. It does not share the carrier pad.
+- Carrier + crawler + the three small craft is a 10×6 hangar on an Advanced 10×10 pad, with living cells behind the halls.
+
+Sietchwright's solo thopter bay is sized for a **scout** plus walk-around. Pick Carrier when you fly a carryall. The two-high CHOAM Garage Door is still the opening we emit; leave the carrier hall open to the sky or add a third story in-game.
 
 ## Airlock, water, power
 

@@ -39,6 +39,16 @@ export function scaleOffset(
   return { x, y, z, length };
 }
 
+/** Compass widget rotation in radians. 0 = N points up (camera is south of the pad). */
+export function compassYaw(
+  camX: number,
+  camZ: number,
+  targetX: number,
+  targetZ: number,
+): number {
+  return Math.atan2(camX - targetX, camZ - targetZ);
+}
+
 export function zoomOffset(
   dx: number,
   dy: number,

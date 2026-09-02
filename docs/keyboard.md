@@ -8,6 +8,7 @@
 | `H` | Hide or show menus |
 | `B` | Toggle the plan sheet |
 | `K` | Toggle the CHOAM kit |
+| `I` | Toggle inside view (hide roof, ghost outer walls) |
 | `R` | Rotate the selected piece |
 | `Delete` / `Backspace` | Remove the selected piece |
 | `Esc` | Clear selection, close overlay |

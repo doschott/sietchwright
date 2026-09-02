@@ -22,15 +22,24 @@ Three scrolling regions (questionnaire dock, CHOAM kit, inspector) sat on the ca
 | CHOAM kit | Left column, ~18rem | Bottom sheet, max 58vh |
 | Inspector | Right column | Bottom sheet, or compact bar if a piece is selected |
 | Zoom | Cluster on the yard | Same |
+| North compass | Under the name card | Same |
+| Inside view | Camera cluster toggle | Same |
 | Bottom dock | Always | Always |
 
 ## Plan sheet steps
 
-1. Pad, stories, shape, presets
-2. People door, vehicle, garage facing
+1. Pad, stories, shape, presets (including Advanced fleet hangar)
+2. People door, **which vehicles to park** (multi-select), garage facing
 3. Extras (airlock, cistern, workshop, loft, lookout)
 
+After you pick Vehicle hangar on step 1, step 2 lets you tap every vehicle you park. Most people at that point have a 'thopter, a buggy, and a bike. Carrier and crawler are optional and bump the pad to Advanced 10×10.
+
 Raise is always on the bottom dock, so you can raise the defaults without finishing every step.
+
+## North and inside
+
+- A **N** compass sits under the Sietchwright name card. It rotates with the camera so N always points at yard north (−Z).
+- **Inside** (key `I`) hides the roof and ghosts the outer walls so you can see rooms, stairs, and the vehicle halls. Iso / Top / South still work.
 
 ## Personas we designed for
 

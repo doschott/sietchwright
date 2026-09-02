@@ -1,8 +1,9 @@
 import { Grid, OrbitControls, useCursor } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { framedPosition, zoomOffset } from "@/lib/camera";
+import { compassYaw, framedPosition, zoomOffset } from "@/lib/camera";
+import { pieceGhostInCutaway, pieceHiddenInCutaway } from "@/lib/cutaway";
 import { isEdgeType } from "@/lib/pieces";
 import { boundsOf } from "@/lib/plan";
 import { useYard } from "@/lib/store";
@@ -34,6 +35,13 @@ function CameraRig() {
   const { camera } = useThree();
   const controls = useRef<OrbitControlsImpl>(null);
   const lastPulse = useRef(0);
+
+  useFrame(({ camera: cam }) => {
+    const plan = useYard.getState().plan;
+    const b = boundsOf(plan);
+    const yaw = compassYaw(cam.position.x, cam.position.z, b.cx, b.cz);
+    useYard.getState().setCamYaw(yaw);
+  });
 
   useLayoutEffect(() => {
     const plan = useYard.getState().plan;
@@ -135,6 +143,7 @@ export function YardScene() {
   const showGrid = useYard((s) => s.showGrid);
   const select = useYard((s) => s.select);
   const placeType = useYard((s) => s.placeType);
+  const cutaway = useYard((s) => s.cutaway);
   const [hovered, setHovered] = useState<string | null>(null);
   const b = boundsOf(plan);
   useCursor(Boolean(hovered) || Boolean(placeType));
@@ -191,18 +200,23 @@ export function YardScene() {
           infiniteGrid
         />
       ) : null}
-      {plan.pieces.map((p) => (
-        <PieceMesh
-          key={p.id}
-          piece={p}
-          selected={p.id === selectedId}
-          hovered={p.id === hovered}
-          showMarker={showMarkers || p.id === selectedId || p.id === hovered}
-          hatchAsRoof={hatchRoof.has(p.id)}
-          onHover={setHovered}
-          onSelect={select}
-        />
-      ))}
+      {plan.pieces.map((p) => {
+        const hatchAsRoof = hatchRoof.has(p.id);
+        return (
+          <PieceMesh
+            key={p.id}
+            piece={p}
+            selected={p.id === selectedId}
+            hovered={p.id === hovered}
+            showMarker={showMarkers || p.id === selectedId || p.id === hovered}
+            hatchAsRoof={hatchAsRoof}
+            hidden={cutaway && pieceHiddenInCutaway(p.type, hatchAsRoof)}
+            ghost={cutaway && pieceGhostInCutaway(p, b)}
+            onHover={setHovered}
+            onSelect={select}
+          />
+        );
+      })}
       <PlacementPlane />
       <CameraRig />
     </>

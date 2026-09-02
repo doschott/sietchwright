@@ -4,6 +4,15 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- North compass under the Sietchwright name card. It rotates with the camera so N is yard north (−Z)
+- Inside view (button + `I`): hide the roof and ghost outer walls so builders can see rooms and hangar halls
+- Plan the Sietch step 2 is a multi-select for parked vehicles: sandbike, buggy, ornithopter, carrier, crawler
+- Advanced 10×10 pad. A carrier hall (6×6) plus a crawler well (4×4) plus living cells fit an advanced sub-fief
+- Fleet hangar packing: 'thopter + buggy + bike get three stalls on Compound 9×6; a carrier nests the smaller craft
+- Advanced fleet hangar preset
+
 ### Security
 
 - Removed the Grok live-preview OAuth client secret from HEAD

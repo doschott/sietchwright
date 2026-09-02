@@ -11,6 +11,7 @@ export function Hotkeys() {
   const toggleChrome = useYard((s) => s.toggleChrome);
   const zoomBy = useYard((s) => s.zoomBy);
   const setOverlay = useYard((s) => s.setOverlay);
+  const toggleCutaway = useYard((s) => s.toggleCutaway);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -46,6 +47,9 @@ export function Hotkeys() {
       } else if (e.key === "k" || e.key === "K") {
         e.preventDefault();
         toggleOverlay("kit");
+      } else if (e.key === "i" || e.key === "I") {
+        e.preventDefault();
+        toggleCutaway();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -60,6 +64,7 @@ export function Hotkeys() {
     toggleChrome,
     zoomBy,
     setOverlay,
+    toggleCutaway,
   ]);
 
   return null;
