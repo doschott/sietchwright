@@ -4,6 +4,12 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Security
+
+- Removed the Grok live-preview OAuth client secret from HEAD
+- Auth is fail-closed unless `VITE_AUTH_ENABLED=true` at build time
+- Production response headers: nosniff, referrer-policy, DENY framing, no camera/mic
+
 ## [0.2.0] - 2026-09-01
 
 ### Added

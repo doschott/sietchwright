@@ -1,6 +1,8 @@
 # Security policy
 
-Sietchwright is a static in-browser planner. There is no user account and no server database in the default app. Plans live in `localStorage` on the visitor's machine.
+Sietchwright is a static in-browser planner. There is no user account and no server database in the default app. Plans live in `localStorage` on the visitor's machine. There is no native installer and no camera or microphone access.
+
+Public production builds set `VITE_AUTH_ENABLED=false`. Do not commit `.env` files, tokens, or Grok preview OAuth secrets.
 
 ## Supported versions
 
