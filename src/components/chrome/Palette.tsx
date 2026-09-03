@@ -82,7 +82,9 @@ export function Palette() {
         <p className="mt-2 px-1 text-xs text-muted">
           {placeType === "garage_door"
             ? "Tap a wall face. The door spans two cells and two stories from that origin."
-            : "Tap the sand to place. Edges snap to the nearest face."}
+            : placeType === "pentashield"
+              ? "Tap a wall face. The pentashield spans four cells and two or three stories from that origin."
+              : "Tap the sand to place. Edges snap to the nearest face."}
         </p>
       ) : (
         <p className="mt-2 px-1 text-xs text-subtle">Pick a piece, then tap the yard.</p>

@@ -38,20 +38,48 @@ describe("vehicle fleet packing", () => {
     assert.equal(ext.depth, 4);
   });
 
-  it("carrier hall also parks scout, buggy, and bike; crawler is a separate well", () => {
+  it("crawler stall is a 2×2 drive-in", () => {
+    assert.deepEqual(stallSize("crawler", true, false), { along: 2, depth: 2 });
+    const stalls = fleetStalls(["crawler"], true);
+    assert.equal(stalls.length, 1);
+    assert.equal(stalls[0]!.along, 2);
+    assert.equal(stalls[0]!.depth, 2);
+    assert.equal(stalls[0]!.opening, "garage");
+    assert.equal(stalls[0]!.story, 0);
+  });
+
+  it("carrier stall is a 5×6 pentashield hall", () => {
+    const stalls = fleetStalls(["carrier"], true);
+    assert.equal(stalls.length, 1);
+    assert.equal(stalls[0]!.along, 5);
+    assert.equal(stalls[0]!.depth, 6);
+    assert.equal(stalls[0]!.opening, "pentashield");
+  });
+
+  it("carrier hall also parks scout, buggy, and bike; crawler stacks under the carrier", () => {
     const groups = groupStalls(["carrier", "crawler", "thopter", "buggy", "bike"]);
     assert.deepEqual(groups[0], ["carrier", "thopter", "buggy", "bike"]);
     assert.deepEqual(groups[1], ["crawler"]);
     const stalls = fleetStalls(["carrier", "crawler", "thopter", "buggy", "bike"], true);
     assert.equal(stalls.length, 2);
+    const car = stalls.find((s) => s.vehicle === "carrier")!;
+    const cr = stalls.find((s) => s.vehicle === "crawler")!;
+    assert.equal(car.opening, "pentashield");
+    assert.equal(car.story, 2);
+    assert.equal(cr.opening, "garage");
+    assert.equal(cr.story, 0);
+    assert.equal(cr.along, 2);
+    assert.equal(cr.depth, 2);
+    assert.ok(cr.u0 >= car.u0);
+    assert.ok(cr.u0 + cr.along <= car.u0 + car.along);
     const ext = packExtent(stalls);
-    assert.equal(ext.along, 10);
+    assert.equal(ext.along, 5);
     assert.equal(ext.depth, 6);
   });
 
-  it("fleetNeed for the full set is 10 along and 8 deep (6 hall + 2 living)", () => {
+  it("fleetNeed for the stacked set is 5 along and 8 deep (6 hall + 2 living)", () => {
     const need = fleetNeed(["carrier", "crawler", "thopter", "buggy", "bike"], true, false);
-    assert.equal(need.along, 10);
+    assert.equal(need.along, 5);
     assert.equal(need.depth, 8);
     assert.equal(need.rigid, true);
   });

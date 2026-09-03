@@ -9,10 +9,11 @@ import {
   type BriefSpec,
   type Facing,
 } from "./spec.ts";
-import { GARAGE_W, garageAlong, type Rot } from "./grid.ts";
+import { GARAGE_W, PENTA_H, PENTA_H_MIN, PENTA_W, garageAlong, type Rot } from "./grid.ts";
 import {
   fleetStalls,
   packExtent,
+  type OpeningKind,
   type PackedStall,
   type ParkVehicleId,
 } from "./vehicles.ts";
@@ -129,6 +130,8 @@ export type WorldStall = {
   vehicle: ParkVehicleId;
   shared: ParkVehicleId[];
   rect: Rect;
+  story: number;
+  opening: OpeningKind;
 };
 
 /** Map packed stalls onto the named pad face. */
@@ -162,6 +165,8 @@ export function stallsToWorld(
       vehicle: s.vehicle,
       shared: s.shared,
       rect: faceRect(w, d, facing, u0, u1, v0, v1),
+      story: s.story,
+      opening: s.opening,
     };
   });
 }
@@ -222,11 +227,15 @@ function shrinkCourtFromBay(court: Rect, bay: Rect, facing: Facing): Rect | null
   return next;
 }
 
-function garageOriginFromBay(bay: Rect, facing: Facing): { x: number; z: number; rot: Rot } {
+function openingOriginFromBay(
+  bay: Rect,
+  facing: Facing,
+  width: number,
+): { x: number; z: number; rot: Rot } {
   const rot = FACE_ROT[facing];
   const span =
     facing === "south" || facing === "north" ? bay.x1 - bay.x0 + 1 : bay.z1 - bay.z0 + 1;
-  const start = Math.max(0, Math.floor((span - GARAGE_W) / 2));
+  const start = Math.max(0, Math.floor((span - width) / 2));
   if (facing === "south") return { x: bay.x0 + start, z: bay.z1, rot };
   if (facing === "north") return { x: bay.x0 + start, z: bay.z0, rot };
   if (facing === "east") return { x: bay.x1, z: bay.z0 + start, rot };
@@ -463,11 +472,24 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     for (const k of rectKeys(bay)) reserved.add(k);
   }
 
-  const garageOrigins: { x: number; z: number; rot: Rot }[] = [];
+  const garageOrigins: { x: number; z: number; rot: Rot; stall: WorldStall; width: number; rise: number }[] =
+    [];
   if (worldStalls.length) {
     for (const stall of worldStalls) {
-      const origin = garageOriginFromBay(stall.rect, spec.bay);
-      garageOrigins.push(origin);
+      const alongSpan =
+        spec.bay === "south" || spec.bay === "north"
+          ? stall.rect.x1 - stall.rect.x0 + 1
+          : stall.rect.z1 - stall.rect.z0 + 1;
+      const width =
+        stall.opening === "pentashield"
+          ? Math.min(PENTA_W, Math.max(GARAGE_W, alongSpan))
+          : GARAGE_W;
+      const rise =
+        stall.opening === "pentashield"
+          ? Math.max(PENTA_H_MIN, Math.min(PENTA_H, top - stall.story + 1))
+          : 2;
+      const origin = openingOriginFromBay(stall.rect, spec.bay, width);
+      garageOrigins.push({ ...origin, stall, width, rise });
       reserved.add(key(origin.x, origin.z));
       const along = garageAlong(origin.rot);
       reserved.add(key(origin.x + along.dx, origin.z + along.dz));
@@ -491,13 +513,25 @@ export function buildFromSpec(raw: BriefSpec): Plan {
   }
 
   for (const origin of garageOrigins) {
-    y.punchGarage(origin.x, 0, origin.z, origin.rot, "bay");
+    const room = worldStalls.length === 1 ? "bay" : `bay-${origin.stall.vehicle}`;
+    if (origin.stall.opening === "pentashield") {
+      y.punchPentashield(
+        origin.x,
+        origin.stall.story,
+        origin.z,
+        origin.rot,
+        origin.width,
+        origin.rise,
+        room,
+      );
+    } else {
+      y.punchGarage(origin.x, origin.stall.story, origin.z, origin.rot, room);
+    }
   }
 
   if (worldStalls.length) {
     for (const stall of worldStalls) {
-      const room =
-        worldStalls.length === 1 ? "bay" : `bay-${stall.vehicle}`;
+      const room = worldStalls.length === 1 ? "bay" : `bay-${stall.vehicle}`;
       if (worldStalls.length > 1) {
         const label =
           stall.shared.length > 1
@@ -510,10 +544,24 @@ export function buildFromSpec(raw: BriefSpec): Plan {
                 .map((v) => PARK_LABELS[v].toLowerCase())
                 .join(", ")}.`
             : "";
-        y.room(room, label, `Double-height volume behind a two-high garage door.${extra}`);
+        const how =
+          stall.opening === "pentashield"
+            ? "Fly-in volume behind a vertical pentashield."
+            : "Double-height volume behind a two-high garage door.";
+        y.room(room, label, `${how}${extra}`);
       }
       const opening = bayInteriorOpening(stall.rect, spec.bay);
-      addRoomWalls(y, rectKeys(stall.rect), w, d, 0, Math.min(1, top), room, opening);
+      const rise = stall.opening === "pentashield" ? Math.min(PENTA_H, top - stall.story + 1) : 2;
+      addRoomWalls(
+        y,
+        rectKeys(stall.rect),
+        w,
+        d,
+        stall.story,
+        Math.min(top, stall.story + Math.max(1, rise) - 1),
+        room,
+        opening,
+      );
     }
   }
 
@@ -544,8 +592,11 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     const skip = new Set(openSky);
     if (stair) skip.add(key(stair.x, stair.z));
     if (cisternCell && s === Math.min(1, top)) skip.add(key(cisternCell.x, cisternCell.z));
-    if (s === 1) {
-      for (const k of bayKeys) skip.add(k);
+    for (const stall of worldStalls) {
+      const rise = stall.opening === "pentashield" ? Math.min(PENTA_H, top - stall.story + 1) : 2;
+      if (s > stall.story && s < stall.story + rise) {
+        for (const k of rectKeys(stall.rect)) skip.add(k);
+      }
     }
     const room = spec.loft ? "loft" : "live";
     y.deck(s, 0, 0, w - 1, d - 1, skip, "floor", room);
@@ -591,6 +642,13 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     const along = garageAlong(origin.rot);
     skipWin.add(`${origin.x}:${origin.z}:${origin.rot}`);
     skipWin.add(`${origin.x + along.dx}:${origin.z + along.dz}:${origin.rot}`);
+    if (origin.stall.opening === "pentashield") {
+      for (let i = 0; i < origin.width; i++) {
+        skipWin.add(
+          `${origin.x + along.dx * i}:${origin.z + along.dz * i}:${origin.rot}`,
+        );
+      }
+    }
   }
 
   for (const facing of ["south", "east", "north", "west"] as Facing[]) {
@@ -667,8 +725,11 @@ function garageHasClearance(plan: Plan, garage: { x: number; z: number; rot: Rot
 }
 
 function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
-  if (parkedVehicles(spec).length === 0) return true;
+  const parked = parkedVehicles(spec);
+  if (!parked.length) return true;
+  const needsGarage = parked.some((v) => v !== "carrier");
   const garages = plan.pieces.filter((p) => p.type === "garage_door");
+  if (!needsGarage) return true;
   if (!garages.length) return false;
   return garages.every((g) => garageHasClearance(plan, g));
 }
@@ -719,16 +780,39 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
     });
   }
   const parked = parkedVehicles(spec);
+  const needsGarage = parked.some((v) => v !== "carrier");
+  const needsPenta = parked.includes("carrier");
+  const pentas = plan.pieces.filter((p) => p.type === "pentashield");
   if (parked.length) {
-    const garages = plan.pieces.filter((p) => p.type === "garage_door");
-    checks.push({
-      label: `Two-high garage on ${spec.bay}`,
-      ok: garages.length >= 1 && garages.every((g) => pieceOnFacing(g, spec.bay, b)),
-    });
-    checks.push({
-      label: "Double-height vehicle bay",
-      ok: hasDoubleHeightBay(plan, spec),
-    });
+    if (needsGarage) {
+      const garages = plan.pieces.filter((p) => p.type === "garage_door");
+      checks.push({
+        label: `Two-high garage on ${spec.bay}`,
+        ok: garages.length >= 1 && garages.every((g) => pieceOnFacing(g, spec.bay, b)),
+      });
+      checks.push({
+        label: "Double-height vehicle bay",
+        ok: hasDoubleHeightBay(plan, spec),
+      });
+    }
+    if (needsPenta) {
+      checks.push({
+        label: `Pentashield on ${spec.bay}`,
+        ok: pentas.length >= 1 && pentas.every((p) => pieceOnFacing(p, spec.bay, b)),
+      });
+      checks.push({
+        label: "Carrier opening is not a garage door",
+        ok: needsGarage || !hasGarage,
+      });
+    }
+    if (needsPenta && parked.includes("crawler")) {
+      const garage = plan.pieces.find((p) => p.type === "garage_door");
+      const penta = pentas[0];
+      checks.push({
+        label: "Carrier hangar above crawler garage",
+        ok: Boolean(garage && penta && penta.y > garage.y),
+      });
+    }
   } else {
     checks.push({ label: "No garage door", ok: !hasGarage });
   }

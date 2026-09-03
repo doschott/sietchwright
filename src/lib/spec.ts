@@ -335,23 +335,28 @@ export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: str
       `More garages need another 10-cell strip. Using ${next.extendWide} wide staking unit${next.extendWide === 1 ? "" : "s"}.`,
     );
   }
-  const storyCap = maxStoriesFor(next.extendHigh!);
-  if (next.stories > storyCap) {
-    next.stories = storyCap;
-    notes.push(`Vertical staking allows up to ${storyCap} stories here.`);
-  }
   if (next.layout === "tower" && next.stories < 3) {
     next.stories = 3;
     notes.push("A watchtower is three stories.");
   }
-  if (next.vehicles!.length > 0 && next.stories < 2) {
+  const parkedNow = next.vehicles!;
+  const hasCarrier = parkedNow.includes("carrier");
+  const hasCrawler = parkedNow.includes("crawler");
+  const neededStories = hasCarrier && hasCrawler ? 5 : hasCarrier ? 3 : parkedNow.length ? 2 : 1;
+  if (parkedNow.length > 0 && next.stories < 2) {
     next.stories = 2;
     notes.push("A two-high garage needs two stories.");
   }
-  if (next.vehicles!.includes("carrier") && next.stories < 3) {
-    notes.push(
-      "A carrier wants three wall-tiles of height in-game. This schematic still uses the two-high CHOAM garage door; leave the hall open or add a third story when you fly one.",
-    );
+  if (hasCarrier && hasCrawler && next.stories < 5) {
+    next.stories = 5;
+    notes.push("A crawler garage with a carrier pentashield above it needs five stories.");
+  } else if (hasCarrier && next.stories < 3) {
+    next.stories = 3;
+    notes.push("A carrier pentashield needs three stories.");
+  }
+  const storyCap = Math.max(maxStoriesFor(next.extendHigh!), neededStories) as StoryCount;
+  if (next.stories > storyCap) {
+    next.stories = storyCap;
   }
   if ((next.loft || next.lookout) && next.stories < 2) {
     next.stories = 2;
@@ -418,7 +423,14 @@ export function describeSpec(spec: BriefSpec): string {
   }
   const parked = parkedVehicles(s);
   if (parked.length) {
-    bits.push(`${s.bay} two-high garage for ${describeFleet(parked, s.vehicleCounts)}`);
+    const fleet = describeFleet(parked, s.vehicleCounts);
+    if (parked.length === 1 && parked[0] === "carrier") {
+      bits.push(`${s.bay} pentashield for ${fleet}`);
+    } else if (parked.includes("carrier") && parked.includes("crawler")) {
+      bits.push(`${s.bay} garage and pentashield for ${fleet}`);
+    } else {
+      bits.push(`${s.bay} two-high garage for ${fleet}`);
+    }
   }
   const extras = EXTRA_OPTS.filter((e) => s[e.key])
     .map((e) => e.label.toLowerCase())

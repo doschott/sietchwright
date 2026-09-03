@@ -81,24 +81,25 @@ We do not simulate underground, worms, or snapping onto POIs.
 
 Door size is not parking size. Leave walk-around unless you want a coffin garage.
 
-| Vehicle | Tight / in-game | Planner stall (walk-around) | Height |
-|---------|-----------------|-----------------------------|--------|
-| Sandbike | 1×1 to 1×2 | 2×2 (solo hangar still 4×3) | 1 wall |
-| Buggy | 2×2 (1×2 is tight) | 3×3 | 1.5–2 walls |
-| Scout ornithopter | 2×3 to 3×3 | 4×4 (solo hangar still 5×4) | 2 walls |
-| Sandcrawler | 3×4 well | 4×4 dedicated stall | 2 walls |
-| Carrier ornithopter | 5×6 min, 6×10 proper; some builders use 4×7 | 6×6 hall | 3 walls (we still emit a two-high garage door) |
+| Vehicle | Tight / in-game | Planner stall | Opening |
+|---------|-----------------|---------------|---------|
+| Sandbike | 1×1 to 1×2 | 2×2 (solo hangar still 4×3) | Garage Door 2×2 |
+| Buggy | 2×2 (1×2 is tight) | 3×3 | Garage Door 2×2 |
+| Scout ornithopter | 2×3 to 3×3 | 4×4 (solo hangar still 5×4) | Garage Door 2×2 |
+| Sandcrawler | 3×4 well in many guides | **2×2 drive-in** (user layout: driven in at ground) | **Garage Door** 2 cells wide × 2 stories. Not a pentashield. |
+| Carrier ornithopter | 5×6 min floor, 6×10 proper | **5×6** fly-in hall | **Pentashield Surface Vertical**, never a garage door. Wiki min opening 2×4; we emit **4 wide × 3 high** when stories allow (else 4×2). |
 
-Sources: [awakening.wiki Carrier Ornithopter](https://awakening.wiki/Carrier_Ornithopter) (5×6 min / 6×10 proper), community hangar guides (crawler 3×4 well, scout 2×3, buggy 2×2), and the existing CHOAM notes above.
+Sources: [awakening.wiki Carrier Ornithopter](https://awakening.wiki/Carrier_Ornithopter) (ground 5×6 min / 6×10 proper; vertical pentashield 2×4 min / 4×5 proper), [Pentashield Surface Vertical](https://duneawakening.wiki.fextralife.com/Pentashield+Surface+Vertical) (drag-to-size energy field, Steel Products). Community hangar guides still use a 3×4 crawler well; this planner follows the 2×2 drive-in the owner asked for. A two-cell garage door fills that 2-wide face.
 
 **Fleet packing**
 
 - Bike, buggy, and scout each get their own stall when no carrier is selected. A 'thopter + buggy + bike row is 9×4 and fits Compound 9×6.
-- A **carrier hall is 6×6**. Scout, buggy, and bike park in that hall (they fit under/beside a landed carrier).
-- A **crawler always gets its own 4×4 well**. It does not share the carrier pad.
-- Carrier + crawler + the three small craft is a 10×6 hangar on an Advanced 10×10 pad, with living cells behind the halls.
+- A **carrier hall is 5×6**. Scout, buggy, and bike with count 1 park in that hall.
+- A **crawler is a 2×2 ground garage** with a Garage Door. It is driven in.
+- **Carrier + crawler stack:** the crawler garage sits on the ground under the carrier hall. The carrier flies in through a pentashield on the same face, starting at story 2 (above the two-high garage). That wants five stories (2 for the garage + 3 for the pentashield).
+- Pentashield granite in the bill is a schematic stand-in (20). Funcom has not published a per-cell granite table for pentashields; they cost power by size in-game.
 
-Sietchwright's solo thopter bay is sized for a **scout** plus walk-around. Pick Carrier when you fly a carryall. The two-high CHOAM Garage Door is still the opening we emit; leave the carrier hall open to the sky or add a third story in-game.
+Sietchwright's solo thopter bay is sized for a **scout** plus walk-around. Pick Carrier when you fly a carryall.
 
 ## Airlock, water, power
 

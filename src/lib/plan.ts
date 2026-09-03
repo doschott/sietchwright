@@ -17,6 +17,10 @@ export type PlacedPiece = {
   z: number;
   rot: Rot;
   room?: RoomId;
+  /** Cells along the wall for spanning openings (garage default 2, pentashield 4). */
+  along?: number;
+  /** Stories tall for spanning openings (garage default 2, pentashield 2 or 3). */
+  rise?: number;
 };
 
 export type Plan = {

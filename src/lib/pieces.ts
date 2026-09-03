@@ -7,6 +7,7 @@ export const PIECE_TYPES = [
   "window",
   "passageway",
   "garage_door",
+  "pentashield",
   "stairs",
   "ramp",
   "rooftop",
@@ -140,6 +141,18 @@ export const PIECES: Record<PieceType, PieceDef> = {
     stone: "#4a4540",
     letter: "G",
   },
+  pentashield: {
+    type: "pentashield",
+    code: "PSH",
+    name: "Pentashield",
+    inGame: "Pentashield Surface Vertical",
+    hint: "Vertical energy field. Drag-sized hangar opening for a carrier. Not a garage door. Schematic stand-in; granite is not a Funcom table.",
+    kind: "edge",
+    granite: 20,
+    marker: "#3a6a88",
+    stone: "#5ec8e8",
+    letter: "Y",
+  },
   stairs: {
     type: "stairs",
     code: "ST",
@@ -241,6 +254,7 @@ export const PIECES: Record<PieceType, PieceDef> = {
 export const PIECE_LIST: PieceDef[] = PIECE_TYPES.map((t) => PIECES[t]);
 
 export const EDGE_PRIORITY: PieceType[] = [
+  "pentashield",
   "garage_door",
   "door",
   "passageway",
@@ -257,6 +271,10 @@ export function isPieceType(v: unknown): v is PieceType {
 
 export function isEdgeType(t: PieceType): boolean {
   return PIECES[t].kind === "edge" || t === "ladder";
+}
+
+export function isSpanOpening(t: PieceType): boolean {
+  return t === "garage_door" || t === "pentashield";
 }
 
 export function isPadType(t: PieceType): boolean {

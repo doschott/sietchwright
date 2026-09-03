@@ -9,6 +9,10 @@ import {
   garageAlong,
   garageCenterY,
   garageHeight,
+  PENTA_H,
+  PENTA_W,
+  pentaCenterY,
+  pentaHeight,
   roofCenterY,
   ROOF_H,
   WALL_H,
@@ -344,7 +348,29 @@ function GarageBody({ color }: { color: string }) {
   );
 }
 
-function bodyFor(type: PieceType, color: string) {
+function PentashieldBody({ along, rise }: { along: number; rise: number }) {
+  const w = along - 0.06;
+  const h = pentaHeight(rise);
+  const t = WALL_T * 0.4;
+  return (
+    <mesh>
+      <boxGeometry args={[w, h, t]} />
+      <meshStandardMaterial
+        color="#7ad4f0"
+        transparent
+        opacity={0.32}
+        roughness={0.12}
+        metalness={0.28}
+        emissive="#1a5a78"
+        emissiveIntensity={0.45}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+function bodyFor(piece: PlacedPiece, color: string) {
+  const type = piece.type;
   switch (type) {
     case "foundation":
       return <FoundationBody color={color} />;
@@ -366,6 +392,10 @@ function bodyFor(type: PieceType, color: string) {
       return <WallShell color={color} height={WALL_H} opening="passage" />;
     case "garage_door":
       return <GarageBody color={color} />;
+    case "pentashield":
+      return (
+        <PentashieldBody along={piece.along ?? PENTA_W} rise={piece.rise ?? PENTA_H} />
+      );
     case "stairs":
       return <StairsBody color={color} />;
     case "ramp":
@@ -466,6 +496,20 @@ function pose(
       marker: [0, garageHeight() / 2 + 0.18, WALL_T],
     };
   }
+  if (type === "pentashield") {
+    const alongN = piece.along ?? PENTA_W;
+    const riseN = piece.rise ?? PENTA_H;
+    const { dx, dz } = garageAlong(rot);
+    return {
+      pos: [
+        ex + dx * ((alongN - 1) / 2),
+        pentaCenterY(y, riseN),
+        ez + dz * ((alongN - 1) / 2),
+      ],
+      rotY: yaw(rot),
+      marker: [0, pentaHeight(riseN) / 2 + 0.18, WALL_T],
+    };
+  }
   return {
     pos: [ex, wallCenterY(y), ez],
     rotY: yaw(rot),
@@ -536,9 +580,9 @@ export function PieceMesh({
         onSelect(piece.id);
       }}
     >
-      {bodyFor(piece.type, color)}
+      {bodyFor(piece, color)}
       {selected ? (
-        piece.type === "garage_door" ? (
+        piece.type === "garage_door" || piece.type === "pentashield" ? (
           <mesh>
             <boxGeometry args={[2.08, garageHeight() + 0.06, WALL_T * 2.2]} />
             <meshBasicMaterial

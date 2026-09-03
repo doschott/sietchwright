@@ -18,6 +18,7 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 - Plan step 1: how many staking units wide and high (0-5 each, Advanced fief, 10 total)
 - Plan step 2: how many of each parked vehicle (1-4), with extra garages when the count is more than one
+- Crawler drive-in is a 2×2 Garage Door. Carrier fly-in is a vertical pentashield, stacked above the crawler when both are selected
 - North compass under the Sietchwright name card. It rotates with the camera so N is yard north (−Z)
 - Inside view (button + `I`): hide the roof and ghost outer walls so builders can see rooms and hangar halls
 - Plan the Sietch step 2 is a multi-select for parked vehicles: sandbike, buggy, ornithopter, carrier, crawler

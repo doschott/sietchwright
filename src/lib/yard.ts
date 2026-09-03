@@ -1,5 +1,12 @@
-import { edgeKey, garageEdgeKeys, garageFootprint, type Rot } from "./grid.ts";
-import { EDGE_PRIORITY, isEdgeType, type PieceType } from "./pieces.ts";
+import {
+  edgeKey,
+  garageEdgeKeys,
+  garageFootprint,
+  pentaEdgeKeys,
+  pentaFootprint,
+  type Rot,
+} from "./grid.ts";
+import { EDGE_PRIORITY, isEdgeType, isSpanOpening, type PieceType } from "./pieces.ts";
 import type { Plan, PlacedPiece, Room } from "./plan.ts";
 
 let seq = 0;
@@ -100,7 +107,8 @@ export class Yard {
   ): this {
     const key = edgeKey(y, x, z, rot);
     this.pieces = this.pieces.filter(
-      (p) => !(isEdgeType(p.type) && p.type !== "garage_door" && edgeKey(p.y, p.x, p.z, p.rot) === key),
+      (p) =>
+        !(isEdgeType(p.type) && !isSpanOpening(p.type) && edgeKey(p.y, p.x, p.z, p.rot) === key),
     );
     this.add(type, x, y, z, rot, room);
     return this;
@@ -116,11 +124,41 @@ export class Yard {
   ): this {
     const keys = new Set(garageEdgeKeys(x, y, z, rot));
     this.pieces = this.pieces.filter((p) => {
-      if (p.type === "garage_door") return true;
+      if (isSpanOpening(p.type)) return true;
       if (!isEdgeType(p.type)) return true;
       return !keys.has(edgeKey(p.y, p.x, p.z, p.rot));
     });
     this.add("garage_door", x, y, z, rot, room);
+    return this;
+  }
+
+  /** Vertical pentashield spanning `along` cells and `rise` stories from origin. */
+  punchPentashield(
+    x: number,
+    y: number,
+    z: number,
+    rot: Rot,
+    along: number,
+    rise: number,
+    room?: string,
+  ): this {
+    const keys = new Set(pentaEdgeKeys(x, y, z, rot, along, rise));
+    this.pieces = this.pieces.filter((p) => {
+      if (isSpanOpening(p.type)) return true;
+      if (!isEdgeType(p.type)) return true;
+      return !keys.has(edgeKey(p.y, p.x, p.z, p.rot));
+    });
+    this.pieces.push({
+      id: nid("pentashield"),
+      type: "pentashield",
+      x,
+      y,
+      z,
+      rot,
+      room,
+      along,
+      rise,
+    });
     return this;
   }
 
@@ -136,14 +174,17 @@ export class Yard {
   }
 
   settle(): Plan {
-    const garages: PlacedPiece[] = [];
-    const garageKeys = new Set<string>();
+    const spans: PlacedPiece[] = [];
+    const spanKeys = new Set<string>();
     for (const p of this.pieces) {
-      if (p.type !== "garage_door") continue;
-      const keys = garageEdgeKeys(p.x, p.y, p.z, p.rot);
-      if (keys.some((k) => garageKeys.has(k))) continue;
-      garages.push(p);
-      for (const k of keys) garageKeys.add(k);
+      if (!isSpanOpening(p.type)) continue;
+      const keys =
+        p.type === "pentashield"
+          ? pentaEdgeKeys(p.x, p.y, p.z, p.rot, p.along, p.rise)
+          : garageEdgeKeys(p.x, p.y, p.z, p.rot);
+      if (keys.some((k) => spanKeys.has(k))) continue;
+      spans.push(p);
+      for (const k of keys) spanKeys.add(k);
     }
 
     const seenPad = new Set<string>();
@@ -152,7 +193,7 @@ export class Yard {
     const rest: PlacedPiece[] = [];
 
     for (const p of this.pieces) {
-      if (p.type === "garage_door") continue;
+      if (isSpanOpening(p.type)) continue;
       if (p.type === "foundation" || p.type === "floor" || p.type === "rooftop") {
         const k = `${p.type}:${p.y}:${p.x}:${p.z}`;
         if (seenPad.has(k)) continue;
@@ -162,13 +203,13 @@ export class Yard {
       }
       if (p.type === "railing") {
         const k = edgeKey(p.y, p.x, p.z, p.rot);
-        if (garageKeys.has(k)) continue;
+        if (spanKeys.has(k)) continue;
         railBest.set(k, p);
         continue;
       }
       if (isEdgeType(p.type)) {
         const k = edgeKey(p.y, p.x, p.z, p.rot);
-        if (garageKeys.has(k)) continue;
+        if (spanKeys.has(k)) continue;
         const prev = edgeBest.get(k);
         if (!prev) {
           edgeBest.set(k, p);
@@ -187,12 +228,14 @@ export class Yard {
       if (p.type === "foundation") pads.add(`${p.x},${p.z}`);
     }
     const extras: PlacedPiece[] = [];
-    const needPad = [...rest, ...garages, ...edgeBest.values(), ...railBest.values()];
+    const needPad = [...rest, ...spans, ...edgeBest.values(), ...railBest.values()];
     for (const p of needPad) {
       const cells =
-        p.type === "garage_door"
-          ? garageFootprint(p.x, p.z, p.rot)
-          : ([[p.x, p.z]] as Array<[number, number]>);
+        p.type === "pentashield"
+          ? pentaFootprint(p.x, p.z, p.rot, p.along)
+          : p.type === "garage_door"
+            ? garageFootprint(p.x, p.z, p.rot)
+            : ([[p.x, p.z]] as Array<[number, number]>);
       for (const [x, z] of cells) {
         if (p.y === 0 && !pads.has(`${x},${z}`)) {
           pads.add(`${x},${z}`);
@@ -214,7 +257,7 @@ export class Yard {
       brief: this.brief,
       tips: this.tips,
       rooms: this.rooms,
-      pieces: [...extras, ...rest, ...garages, ...edgeBest.values(), ...railBest.values()],
+      pieces: [...extras, ...rest, ...spans, ...edgeBest.values(), ...railBest.values()],
       source: this.source,
     };
   }

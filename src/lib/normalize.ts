@@ -2,12 +2,15 @@ import {
   edgeKey,
   garageEdgeKeys,
   garageFootprint,
+  pentaEdgeKeys,
+  pentaFootprint,
   ROTS,
   type Rot,
 } from "./grid";
 import {
   EDGE_PRIORITY,
   isPieceType,
+  isSpanOpening,
   type PieceType,
 } from "./pieces";
 import type { Plan, PlacedPiece, Room } from "./plan";
@@ -62,12 +65,15 @@ export function normalizePlan(
     const rec = p as Record<string, unknown>;
     const type = rec.t ?? rec.type;
     if (!isPieceType(type)) continue;
-    const x = asInt(rec.x, -12, 12);
-    const y = asInt(rec.y, 0, type === "garage_door" ? 2 : 3);
-    const z = asInt(rec.z, -12, 12);
+    const x = asInt(rec.x, -80, 80);
+    const yMax = type === "pentashield" ? 6 : type === "garage_door" ? 2 : 8;
+    const y = asInt(rec.y, 0, yMax);
+    const z = asInt(rec.z, -80, 80);
     const rot = asRot(rec.r ?? rec.rot);
     const roomRaw = rec.room ? String(rec.room).slice(0, 32) : undefined;
     const room = roomRaw && roomIds.has(roomRaw) ? roomRaw : undefined;
+    const alongRaw = rec.along != null ? asInt(rec.along, 1, 8) : undefined;
+    const riseRaw = rec.rise != null ? asInt(rec.rise, 1, 6) : undefined;
     pieces.push({
       id: String(rec.id ?? `${type}-${i++}`),
       type,
@@ -76,8 +82,10 @@ export function normalizePlan(
       z,
       rot,
       room,
+      along: alongRaw,
+      rise: riseRaw,
     });
-    if (pieces.length >= 140) break;
+    if (pieces.length >= 8000) break;
   }
 
   const plan: Plan = {
@@ -106,9 +114,11 @@ export function ensureFoundations(plan: Plan): Plan {
   const extra: PlacedPiece[] = [];
   for (const p of plan.pieces) {
     const cells =
-      p.type === "garage_door"
-        ? garageFootprint(p.x, p.z, p.rot)
-        : ([[p.x, p.z]] as Array<[number, number]>);
+      p.type === "pentashield"
+        ? pentaFootprint(p.x, p.z, p.rot, p.along)
+        : p.type === "garage_door"
+          ? garageFootprint(p.x, p.z, p.rot)
+          : ([[p.x, p.z]] as Array<[number, number]>);
     for (const [x, z] of cells) {
       const k = `${x},${z}`;
       if (have.has(k)) continue;
@@ -127,15 +137,18 @@ export function ensureFoundations(plan: Plan): Plan {
 }
 
 export function dedupePlan(plan: Plan): Plan {
-  const garages: PlacedPiece[] = [];
-  const garageKeys = new Set<string>();
+  const spans: PlacedPiece[] = [];
+  const spanKeys = new Set<string>();
   for (const p of plan.pieces) {
-    if (p.type !== "garage_door") continue;
-    const keys = garageEdgeKeys(p.x, p.y, p.z, p.rot);
-    const overlap = keys.some((k) => garageKeys.has(k));
+    if (!isSpanOpening(p.type)) continue;
+    const keys =
+      p.type === "pentashield"
+        ? pentaEdgeKeys(p.x, p.y, p.z, p.rot, p.along, p.rise)
+        : garageEdgeKeys(p.x, p.y, p.z, p.rot);
+    const overlap = keys.some((k) => spanKeys.has(k));
     if (overlap) continue;
-    garages.push(p);
-    for (const k of keys) garageKeys.add(k);
+    spans.push(p);
+    for (const k of keys) spanKeys.add(k);
   }
 
   const wallSlot = new Map<string, PlacedPiece>();
@@ -145,10 +158,10 @@ export function dedupePlan(plan: Plan): Plan {
   const other: PlacedPiece[] = [];
 
   for (const p of plan.pieces) {
-    if (p.type === "garage_door") continue;
+    if (isSpanOpening(p.type)) continue;
     if (WALL_SLOT.includes(p.type)) {
       const k = edgeKey(p.y, p.x, p.z, p.rot);
-      if (garageKeys.has(k)) continue;
+      if (spanKeys.has(k)) continue;
       const prev = wallSlot.get(k);
       if (!prev) wallSlot.set(k, p);
       else {
@@ -160,13 +173,13 @@ export function dedupePlan(plan: Plan): Plan {
     }
     if (p.type === "railing") {
       const k = edgeKey(p.y, p.x, p.z, p.rot);
-      if (garageKeys.has(k)) continue;
+      if (spanKeys.has(k)) continue;
       railSlot.set(k, p);
       continue;
     }
     if (p.type === "ladder") {
       const k = edgeKey(p.y, p.x, p.z, p.rot);
-      if (garageKeys.has(k)) continue;
+      if (spanKeys.has(k)) continue;
       ladderSlot.set(k, p);
       continue;
     }
@@ -203,7 +216,7 @@ export function dedupePlan(plan: Plan): Plan {
       ...floorsKept,
       ...roofsKept,
       ...hatches,
-      ...garages,
+      ...spans,
       ...wallSlot.values(),
       ...railSlot.values(),
       ...ladderSlot.values(),

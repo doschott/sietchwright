@@ -231,6 +231,11 @@ export const useYard = create<State>((set, get) => ({
     }
     if (placeType === "foundation") piece.y = 0;
     if (placeType === "garage_door") piece.y = Math.min(piece.y, 2);
+    if (placeType === "pentashield") {
+      piece.y = Math.min(piece.y, 6);
+      piece.along = 4;
+      piece.rise = 3;
+    }
     const next = normalizePlan(
       {
         ...plan,

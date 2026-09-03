@@ -8,6 +8,7 @@ const ENVELOPE_TYPES = new Set<PieceType>([
   "window",
   "passageway",
   "garage_door",
+  "pentashield",
 ]);
 
 /** Roof and rails hide in Inside view so rooms read as a dollhouse. */

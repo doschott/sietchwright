@@ -8,6 +8,15 @@ export const ROOF_H = 0.07;
 export const GARAGE_W = 2;
 export const GARAGE_H = 2;
 
+/** Carrier fly-in: wiki min 5×6 floor, vertical pentashield min 2×4, we prefer 4×3. */
+export const CARRIER_ALONG = 5;
+export const CARRIER_DEPTH = 6;
+export const PENTA_W = 4;
+export const PENTA_H = 3;
+export const PENTA_H_MIN = 2;
+export const CRAWLER_ALONG = 2;
+export const CRAWLER_DEPTH = 2;
+
 /** Top of the walkable deck at a given story (0 = foundation top). */
 export function deckY(story: number): number {
   if (story <= 0) return FOUND_H;
@@ -119,4 +128,61 @@ export function garageFootprint(
     [x, z],
     [x + dx, z + dz],
   ];
+}
+
+export function spanAlong(
+  rot: Rot,
+  span: number,
+): Array<{ dx: number; dz: number }> {
+  const { dx, dz } = garageAlong(rot);
+  const out: Array<{ dx: number; dz: number }> = [];
+  for (let i = 0; i < span; i++) out.push({ dx: dx * i, dz: dz * i });
+  return out;
+}
+
+export function pentaCells(
+  x: number,
+  y: number,
+  z: number,
+  rot: Rot,
+  along = PENTA_W,
+  rise = PENTA_H,
+): EdgeCell[] {
+  const steps = spanAlong(rot, along);
+  const out: EdgeCell[] = [];
+  for (let s = 0; s < rise; s++) {
+    for (const step of steps) {
+      out.push({ x: x + step.dx, y: y + s, z: z + step.dz, rot });
+    }
+  }
+  return out;
+}
+
+export function pentaEdgeKeys(
+  x: number,
+  y: number,
+  z: number,
+  rot: Rot,
+  along = PENTA_W,
+  rise = PENTA_H,
+): string[] {
+  return pentaCells(x, y, z, rot, along, rise).map((c) => edgeKey(c.y, c.x, c.z, c.rot));
+}
+
+export function pentaFootprint(
+  x: number,
+  z: number,
+  rot: Rot,
+  along = PENTA_W,
+): Array<[number, number]> {
+  return spanAlong(rot, along).map((s) => [x + s.dx, z + s.dz]);
+}
+
+export function pentaHeight(rise: number): number {
+  const n = Math.max(PENTA_H_MIN, rise);
+  return WALL_H * n + FLOOR_H * (n - 1);
+}
+
+export function pentaCenterY(story: number, rise: number): number {
+  return deckY(story) + pentaHeight(rise) / 2;
 }

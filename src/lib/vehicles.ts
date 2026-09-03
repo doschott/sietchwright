@@ -50,8 +50,8 @@ const SINGLE: Record<ParkVehicleId, { along: number; depth: number; hangarAlong:
     bike: { along: 3, depth: 2, hangarAlong: 4, hangarDepth: 3 },
     buggy: { along: 3, depth: 2, hangarAlong: 4, hangarDepth: 3 },
     thopter: { along: 4, depth: 3, hangarAlong: 5, hangarDepth: 4 },
-    crawler: { along: 4, depth: 4, hangarAlong: 4, hangarDepth: 4 },
-    carrier: { along: 6, depth: 6, hangarAlong: 6, hangarDepth: 6 },
+    crawler: { along: 2, depth: 2, hangarAlong: 2, hangarDepth: 2 },
+    carrier: { along: 5, depth: 6, hangarAlong: 5, hangarDepth: 6 },
   };
 
 /** Multi-vehicle stalls: research footprints plus a cell of walk-around. */
@@ -59,8 +59,8 @@ const FLEET: Record<ParkVehicleId, { along: number; depth: number }> = {
   bike: { along: 2, depth: 2 },
   buggy: { along: 3, depth: 3 },
   thopter: { along: 4, depth: 4 },
-  crawler: { along: 4, depth: 4 },
-  carrier: { along: 6, depth: 6 },
+  crawler: { along: 2, depth: 2 },
+  carrier: { along: 5, depth: 6 },
 };
 
 export function stallSize(
@@ -73,6 +73,8 @@ export function stallSize(
   return hangar ? { along: s.hangarAlong, depth: s.hangarDepth } : { along: s.along, depth: s.depth };
 }
 
+export type OpeningKind = "garage" | "pentashield";
+
 export type PackedStall = {
   vehicle: ParkVehicleId;
   shared: ParkVehicleId[];
@@ -80,7 +82,13 @@ export type PackedStall = {
   depth: number;
   u0: number;
   v0: number;
+  story: number;
+  opening: OpeningKind;
 };
+
+export function openingOf(vehicle: ParkVehicleId): OpeningKind {
+  return vehicle === "carrier" ? "pentashield" : "garage";
+}
 
 /**
  * A carrier hall is big enough that scout, buggy, and bike park in it.
@@ -156,18 +164,13 @@ function stallItems(
   return items;
 }
 
-/** Shelf-pack along a hangar face. Wrap at 10 cells unless wrapAlong is set. */
-export function fleetStalls(
-  vehicles: ParkVehicleId[],
-  hangar: boolean,
-  opts?: FleetOpts,
+type StallItem = { vehicle: ParkVehicleId; shared: ParkVehicleId[]; along: number; depth: number };
+
+function shelfPack(
+  items: StallItem[],
+  maxAlong: number,
+  story: number,
 ): PackedStall[] {
-  const items = stallItems(vehicles, hangar, opts?.counts);
-  if (!items.length) return [];
-  const maxItem = Math.max(...items.map((i) => i.along));
-  const totalAlong = items.reduce((s, i) => s + i.along, 0);
-  const cap = opts?.wrapAlong ?? 10;
-  const maxAlong = Math.max(maxItem, Math.min(cap, totalAlong));
   const sorted = [...items].sort((a, b) => b.depth - a.depth || b.along - a.along);
   const out: PackedStall[] = [];
   let rowAlong = 0;
@@ -179,9 +182,83 @@ export function fleetStalls(
       rowAlong = 0;
       rowMaxDepth = 0;
     }
-    out.push({ ...it, u0: rowAlong, v0: rowV });
+    out.push({
+      ...it,
+      u0: rowAlong,
+      v0: rowV,
+      story,
+      opening: openingOf(it.vehicle),
+    });
     rowAlong += it.along;
     rowMaxDepth = Math.max(rowMaxDepth, it.depth);
+  }
+  return out;
+}
+
+/** Shelf-pack along a hangar face. Wrap at 10 cells unless wrapAlong is set. */
+export function fleetStalls(
+  vehicles: ParkVehicleId[],
+  hangar: boolean,
+  opts?: FleetOpts,
+): PackedStall[] {
+  const items = stallItems(vehicles, hangar, opts?.counts);
+  if (!items.length) return [];
+  const carriers = items.filter((i) => i.vehicle === "carrier");
+  const crawlers = items.filter((i) => i.vehicle === "crawler");
+  const rest = items.filter((i) => i.vehicle !== "carrier" && i.vehicle !== "crawler");
+  const stack = carriers.length > 0 && crawlers.length > 0;
+  const maxItem = Math.max(...items.map((i) => i.along));
+  const totalAlong = stack
+    ? rest.reduce((s, i) => s + i.along, 0) + carriers.reduce((s, i) => s + i.along, 0)
+    : items.reduce((s, i) => s + i.along, 0);
+  const cap = opts?.wrapAlong ?? 10;
+  const maxAlong = Math.max(maxItem, Math.min(cap, Math.max(totalAlong, maxItem)));
+
+  if (!stack) {
+    return shelfPack(items, maxAlong, 0);
+  }
+
+  const out = shelfPack(rest, maxAlong, 0);
+  let rowAlong = out.length ? packExtent(out).along : 0;
+  let rowV = 0;
+  let rowMaxDepth = out.length ? Math.max(...out.filter((s) => s.v0 === 0).map((s) => s.depth), 0) : 0;
+  if (rowAlong >= maxAlong && rest.length) {
+    rowV = packExtent(out).depth;
+    rowAlong = 0;
+    rowMaxDepth = 0;
+  }
+  const unpairedCrawlers = crawlers.slice(carriers.length);
+  for (let i = 0; i < carriers.length; i++) {
+    const car = carriers[i]!;
+    if (rowAlong > 0 && rowAlong + car.along > maxAlong) {
+      rowV += Math.max(rowMaxDepth, car.depth);
+      rowAlong = 0;
+      rowMaxDepth = 0;
+    }
+    out.push({
+      ...car,
+      u0: rowAlong,
+      v0: rowV,
+      story: 2,
+      opening: "pentashield",
+    });
+    const cr = crawlers[i];
+    if (cr) {
+      out.push({
+        ...cr,
+        along: 2,
+        depth: 2,
+        u0: rowAlong + Math.max(0, Math.floor((car.along - 2) / 2)),
+        v0: rowV,
+        story: 0,
+        opening: "garage",
+      });
+    }
+    rowAlong += car.along;
+    rowMaxDepth = Math.max(rowMaxDepth, car.depth);
+  }
+  if (unpairedCrawlers.length) {
+    out.push(...shelfPack(unpairedCrawlers, maxAlong, 0));
   }
   return out;
 }

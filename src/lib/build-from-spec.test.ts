@@ -315,7 +315,7 @@ describe("buildFromSpec", () => {
     assert.equal(door.rot, FACE_ROT.east);
   });
 
-  it("carrier + crawler + small craft fit an advanced 10×10 with two garage halls", () => {
+  it("carrier + crawler + small craft stack pentashield over a 2×2 garage on 10×10", () => {
     const spec: BriefSpec = {
       size: "advanced",
       stories: 2,
@@ -336,10 +336,92 @@ describe("buildFromSpec", () => {
     assert.equal(b.maxX - b.minX + 1, 10);
     assert.equal(b.maxZ - b.minZ + 1, 10);
     const garages = plan.pieces.filter((p) => p.type === "garage_door");
-    assert.equal(garages.length, 2);
-    assert.ok(garages.every((g) => g.rot === FACE_ROT.south && g.z === b.maxZ));
+    const pentas = plan.pieces.filter((p) => p.type === "pentashield");
+    assert.equal(garages.length, 1);
+    assert.equal(pentas.length, 1);
+    assert.ok(garages[0]!.z === b.maxZ);
+    assert.ok(pentas[0]!.z === b.maxZ);
+    assert.ok(pentas[0]!.y > garages[0]!.y);
     assert.ok(plan.rooms.some((r) => /carrier/i.test(r.name)));
     assert.ok(plan.rooms.some((r) => /crawler/i.test(r.name)));
+  });
+
+  it("crawler-only is a 2×2 ground garage door, not a pentashield", () => {
+    const spec = parseSpec({
+      size: "keep",
+      layout: "box",
+      entrance: "east",
+      bay: "south",
+      vehicles: ["crawler"],
+    });
+    assertChecks(spec, "crawler-only");
+    const plan = buildFromSpec(spec);
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
+    const pentas = plan.pieces.filter((p) => p.type === "pentashield");
+    assert.equal(garages.length, 1);
+    assert.equal(pentas.length, 0);
+    const g = garages[0]!;
+    const along = g.rot === 0 || g.rot === 180;
+    const span = along
+      ? plan.pieces.filter((p) => p.type === "foundation" && p.z === g.z).length
+      : 0;
+    void span;
+    const b = boundsOf(plan);
+    assert.equal(g.z, b.maxZ);
+    const floor1 = new Set(
+      plan.pieces.filter((p) => p.type === "floor" && p.y === 1).map((p) => `${p.x},${p.z}`),
+    );
+    assert.equal(floor1.has(`${g.x},${g.z}`), false);
+    assert.equal(floor1.has(`${g.x + 1},${g.z}`), false);
+  });
+
+  it("carrier-only uses a pentashield and no garage door", () => {
+    const spec = parseSpec({
+      size: "advanced",
+      layout: "hangar",
+      entrance: "east",
+      bay: "south",
+      vehicles: ["carrier"],
+    });
+    assertChecks(spec, "carrier-only");
+    const plan = buildFromSpec(spec);
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
+    const pentas = plan.pieces.filter((p) => p.type === "pentashield");
+    assert.equal(garages.length, 0);
+    assert.equal(pentas.length, 1);
+    assert.ok((pentas[0]!.along ?? 0) >= 4);
+    assert.ok((pentas[0]!.rise ?? 0) >= 2);
+    const b = boundsOf(plan);
+    assert.equal(pentas[0]!.z, b.maxZ);
+  });
+
+  it("crawler + carrier stacks the pentashield above the garage", () => {
+    const spec = parseSpec({
+      size: "advanced",
+      layout: "hangar",
+      entrance: "east",
+      bay: "south",
+      vehicles: ["crawler", "carrier"],
+    });
+    assertChecks(spec, "stack");
+    const plan = buildFromSpec(spec);
+    const garage = plan.pieces.find((p) => p.type === "garage_door")!;
+    const penta = plan.pieces.find((p) => p.type === "pentashield")!;
+    assert.ok(garage);
+    assert.ok(penta);
+    assert.ok(penta.y > garage.y);
+    assert.equal(penta.y, 2);
+    assert.equal(garage.y, 0);
+    const wallOnPenta = plan.pieces.some(
+      (p) =>
+        p.type === "wall" &&
+        p.x === penta.x &&
+        p.z === penta.z &&
+        p.rot === penta.rot &&
+        p.y >= penta.y &&
+        p.y < penta.y + (penta.rise ?? 3),
+    );
+    assert.equal(wallOnPenta, false);
   });
 
   it("one wide staking unit on an advanced south bay is a 20×10 pad", () => {
