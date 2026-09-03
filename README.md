@@ -22,7 +22,7 @@ It stays in your browser. No account. No database. The last yard is saved in `lo
 
 ## What you can do
 
-1. **Plan.** Pad, stories, box / courtyard / hangar / watchtower, people door, parked vehicles (multi-select), extras.
+1. **Plan.** Pad, stories, shape, staking units (wide/high, 0-5 each), people door, parked vehicles and how many, extras.
 2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. Each vehicle stall gets a two-cell-wide, two-story garage on the wall you named.
 3. **See.** Iso, top, and south cameras. **Inside** hides the roof so you can read rooms. A **N** marker under the name card is yard north. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
 4. **Modify.** Change answers and raise again, or place extra CHOAM pieces by hand from the kit.

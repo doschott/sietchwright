@@ -61,4 +61,21 @@ describe("vehicle fleet packing", () => {
     assert.equal(describeFleet(["bike", "buggy"]), "buggy and sandbike");
     assert.match(describeFleet(["thopter", "buggy", "bike"]), /ornithopter, buggy, and sandbike/);
   });
+
+  it("two ornithopters add a second stall even next to a carrier", () => {
+    const stalls = fleetStalls(["carrier", "thopter"], true, { counts: { thopter: 2, carrier: 1 } });
+    const thopters = stalls.filter((s) => s.vehicle === "thopter");
+    const carriers = stalls.filter((s) => s.vehicle === "carrier");
+    assert.equal(carriers.length, 1);
+    assert.equal(thopters.length, 1);
+    assert.equal(stalls.length, 2);
+  });
+
+  it("three ornithopters wrap on a 10-wide face", () => {
+    const stalls = fleetStalls(["thopter"], true, { counts: { thopter: 3 }, wrapAlong: 10 });
+    assert.equal(stalls.length, 3);
+    const ext = packExtent(stalls);
+    assert.ok(ext.along <= 10);
+    assert.ok(ext.depth >= 4);
+  });
 });

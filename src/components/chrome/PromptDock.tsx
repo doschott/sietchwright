@@ -6,10 +6,17 @@ import {
   EXTRA_OPTS,
   FACING_OPTS,
   LAYOUT_OPTS,
+  MAX_HORIZONTAL_STAKES,
+  MAX_VEHICLE_COUNT,
+  MAX_VERTICAL_STAKES,
   PARK_OPTS,
   PRESETS,
   SIZE_OPTS,
+  countOf,
   describeSpec,
+  extendHighOf,
+  extendWideOf,
+  maxStoriesFor,
   parkedVehicles,
   sizeFitsFleet,
   specsEqual,
@@ -18,6 +25,8 @@ import {
   type LayoutId,
   type ParkVehicleId,
   type SizeId,
+  type StakeCount,
+  type StoryCount,
 } from "@/lib/spec";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -154,8 +163,22 @@ export function PromptDock() {
     const has = parked.includes(id);
     let next = has ? parked.filter((v) => v !== id) : [...parked, id];
     if (spec.layout === "hangar" && next.length === 0) next = ["thopter"];
-    setSpec({ vehicles: next });
+    const vehicleCounts = { ...spec.vehicleCounts };
+    if (next.includes(id) && !has) vehicleCounts[id] = 1;
+    if (!next.includes(id)) delete vehicleCounts[id];
+    setSpec({ vehicles: next, vehicleCounts });
   }
+
+  const stakeNums = [0, 1, 2, 3, 4, 5] as const;
+  const storyCap = maxStoriesFor(extendHighOf(spec));
+  const storyOpts = Array.from({ length: storyCap }, (_, i) => {
+    const n = i + 1;
+    return {
+      id: String(n),
+      label: String(n),
+      disabled: (n === 1 && needsTwo) || (spec.layout === "tower" && n < 3),
+    };
+  });
 
   function raise() {
     setGenerating(true);
@@ -239,18 +262,16 @@ export function PromptDock() {
             <ChipGroup
               question="How many stories?"
               value={String(spec.stories)}
-              options={[
-                { id: "1", label: "1", disabled: needsTwo },
-                { id: "2", label: "2", disabled: spec.layout === "tower" },
-                { id: "3", label: "3" },
-              ]}
-              onChange={(v) => setSpec({ stories: Number(v) as 1 | 2 | 3 })}
+              options={storyOpts}
+              onChange={(v) => setSpec({ stories: Number(v) as StoryCount })}
               hint={
                 spec.layout === "tower"
                   ? "A watchtower is three stories."
                   : parked.length
                     ? "Garage doors are two cells tall, so two stories."
-                    : undefined
+                    : extendHighOf(spec)
+                      ? `Vertical staking raises the cap to ${storyCap} stories.`
+                      : undefined
               }
             />
             <ChipGroup
@@ -258,6 +279,20 @@ export function PromptDock() {
               value={spec.layout}
               options={LAYOUT_OPTS}
               onChange={(layout: LayoutId) => setSpec({ layout })}
+            />
+            <ChipGroup
+              question="How many extensions wide?"
+              value={String(extendWideOf(spec))}
+              options={stakeNums.map((n) => ({ id: String(n), label: String(n) }))}
+              onChange={(v) => setSpec({ extendWide: Number(v) as StakeCount })}
+              hint={`Horizontal staking units. Max ${MAX_HORIZONTAL_STAKES} wide. Each adds a 10-cell strip. Advanced fief only.`}
+            />
+            <ChipGroup
+              question="How many extensions high?"
+              value={String(extendHighOf(spec))}
+              options={stakeNums.map((n) => ({ id: String(n), label: String(n) }))}
+              onChange={(v) => setSpec({ extendHigh: Number(v) as StakeCount })}
+              hint={`Vertical staking units. Max ${MAX_VERTICAL_STAKES} high, ${MAX_HORIZONTAL_STAKES + MAX_VERTICAL_STAKES} total with wide.`}
             />
             <div>
               <p className="mb-1.5 text-xs font-medium tracking-wide text-muted">
@@ -291,7 +326,7 @@ export function PromptDock() {
               values={parked}
               options={PARK_OPTS}
               onToggle={toggleVehicle}
-              onClear={() => setSpec({ vehicle: "none", vehicles: [] })}
+              onClear={() => setSpec({ vehicle: "none", vehicles: [], vehicleCounts: {} })}
               noneLabel="None"
               noneDisabled={spec.layout === "hangar"}
               hint={
@@ -300,6 +335,22 @@ export function PromptDock() {
                   : "Tap every vehicle you park. A hangar shape sizes the bay for the whole set."
               }
             />
+            {parked.map((id) => (
+              <ChipGroup
+                key={id}
+                question={`How many ${PARK_OPTS.find((o) => o.id === id)?.label ?? id}?`}
+                value={String(countOf(id, parked, spec.vehicleCounts))}
+                options={Array.from({ length: MAX_VEHICLE_COUNT }, (_, i) => ({
+                  id: String(i + 1),
+                  label: String(i + 1),
+                }))}
+                onChange={(v) =>
+                  setSpec({
+                    vehicleCounts: { ...spec.vehicleCounts, [id]: Number(v) },
+                  })
+                }
+              />
+            ))}
             {parked.length ? (
               <ChipGroup
                 question="Garage door opens toward?"

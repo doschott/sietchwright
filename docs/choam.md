@@ -56,7 +56,26 @@ Launch **Wide Door** is a different piece: two cells wide, one story. Buggies hi
 | compound | 9×6 | Scout hangars, or a 'thopter + buggy + bike row. |
 | advanced | 10×10 | Advanced Sub-Fief. Carrier + crawler + smaller craft. |
 
-Basic Sub-Fief usable pad is about **5×5** once walls eat a cell. Advanced Sub-Fief is on the order of **10×10** with staking. We do not simulate staking or worms.
+Basic Sub-Fief usable pad is about **5×5** once walls eat a cell. Advanced Sub-Fief is **10×10** foundations and about **12** wall-tiles high before staking ([awakening.wiki](https://awakening.wiki/Advanced_Sub-Fief_Console)).
+
+## Staking units (base extenders)
+
+Only an **Advanced Sub-Fief Console** takes staking units. Funcom's Communinet Signal #7 and player-measured bases agree:
+
+- **5 horizontal** staking units max
+- **5 vertical** staking units max
+- **10 total** (you cannot spend all 10 in one direction)
+
+Each horizontal unit adds another **10×10** plot on one face of the claim. Each vertical unit raises the whole claim (about 5 wall-tiles up and some down). Taxes were removed in 1.3; the 5+5 cap remains.
+
+Sietchwright keeps this simple:
+
+- Questions: how many **wide** (0–5) and how many **high** (0–5).
+- Wide grows the pad by 10 cells along the garage wall (or east-west if there is no garage).
+- High raises the story cap: `3 + high`, max 8. We do not emit 12–40 wall-tiles of empty air.
+- Any staking unit bumps the pad to Advanced 10×10.
+
+We do not simulate underground, worms, or snapping onto POIs.
 
 ## Vehicle bays (player-measured, not Funcom tables)
 

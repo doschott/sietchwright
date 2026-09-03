@@ -90,7 +90,7 @@ function CameraRig() {
       minPolarAngle={0.12}
       maxPolarAngle={Math.PI / 2 - 0.06}
       minDistance={5}
-      maxDistance={48}
+      maxDistance={90}
       enablePan
       screenSpacePanning
     />

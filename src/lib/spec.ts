@@ -1,17 +1,38 @@
 import type { Rot } from "./grid.ts";
 import {
+  MAX_VEHICLE_COUNT,
   PARK_LABELS,
   PARK_VEHICLES,
+  countOf,
   describeFleet,
   fleetNeed,
   isParkVehicle,
   primaryVehicle,
   uniqueVehicles,
   type ParkVehicleId,
+  type VehicleCounts,
 } from "./vehicles.ts";
 
-export { PARK_LABELS, PARK_VEHICLES, isParkVehicle, uniqueVehicles, primaryVehicle };
-export type { ParkVehicleId };
+export {
+  MAX_VEHICLE_COUNT,
+  PARK_LABELS,
+  PARK_VEHICLES,
+  isParkVehicle,
+  uniqueVehicles,
+  primaryVehicle,
+  countOf,
+};
+export type { ParkVehicleId, VehicleCounts };
+
+/** Horizontal / vertical staking units on an Advanced Sub-Fief. 5 each, 10 total. */
+export const MAX_HORIZONTAL_STAKES = 5;
+export const MAX_VERTICAL_STAKES = 5;
+export const STAKE_PLOT = 10;
+export const BASE_STORY_CAP = 3;
+export const MAX_STORIES = 8;
+
+export type StoryCount = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type StakeCount = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const FACINGS = ["south", "east", "north", "west"] as const;
 export type Facing = (typeof FACINGS)[number];
@@ -27,12 +48,18 @@ export type VehicleId = (typeof VEHICLES)[number];
 
 export type BriefSpec = {
   size: SizeId;
-  stories: 1 | 2 | 3;
+  stories: StoryCount;
   layout: LayoutId;
   entrance: Facing;
   vehicle: VehicleId;
   /** Parked vehicles. Empty means none. If omitted, derived from `vehicle`. */
   vehicles?: ParkVehicleId[];
+  /** How many of each parked vehicle. Missing keys mean 1. */
+  vehicleCounts?: VehicleCounts;
+  /** Horizontal staking units (0-5). Each adds a 10-cell strip. */
+  extendWide?: StakeCount;
+  /** Vertical staking units (0-5). Each raises the story cap by 1. */
+  extendHigh?: StakeCount;
   bay: Facing;
   airlock: boolean;
   cistern: boolean;
@@ -48,6 +75,9 @@ export const DEFAULT_SPEC: BriefSpec = {
   entrance: "south",
   vehicle: "none",
   vehicles: [],
+  vehicleCounts: {},
+  extendWide: 0,
+  extendHigh: 0,
   bay: "south",
   airlock: true,
   cistern: true,
@@ -118,6 +148,62 @@ export const FACE_ROT: Record<Facing, Rot> = {
   west: 270,
 };
 
+export function clampStake(n: unknown): StakeCount {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  if (v >= MAX_HORIZONTAL_STAKES) return MAX_HORIZONTAL_STAKES;
+  return v as StakeCount;
+}
+
+export function maxStoriesFor(extendHigh: number): StoryCount {
+  const cap = Math.min(MAX_STORIES, BASE_STORY_CAP + clampStake(extendHigh));
+  return cap as StoryCount;
+}
+
+export function clampStories(n: unknown, max: number = BASE_STORY_CAP): StoryCount {
+  const v = Math.round(Number(n));
+  const hi = Math.min(MAX_STORIES, Math.max(1, max));
+  if (!Number.isFinite(v) || v < 1) return 2;
+  if (v > hi) return hi as StoryCount;
+  return v as StoryCount;
+}
+
+export function extendWideOf(spec: Pick<BriefSpec, "extendWide">): StakeCount {
+  return clampStake(spec.extendWide);
+}
+
+export function extendHighOf(spec: Pick<BriefSpec, "extendHigh">): StakeCount {
+  return clampStake(spec.extendHigh);
+}
+
+/** Actual pad cells after horizontal staking units. */
+export function padDims(
+  spec: Pick<BriefSpec, "size" | "extendWide" | "bay">,
+): { w: number; d: number } {
+  const base = SIZE_DIMS[isSize(spec.size) ? spec.size : "compact"];
+  const extra = extendWideOf(spec) * STAKE_PLOT;
+  if (spec.bay === "east" || spec.bay === "west") {
+    return { w: base.w, d: base.d + extra };
+  }
+  return { w: base.w + extra, d: base.d };
+}
+
+export function countsOf(spec: Pick<BriefSpec, "vehicle" | "vehicles" | "vehicleCounts">): VehicleCounts {
+  const parked = parkedVehicles(spec);
+  const out: VehicleCounts = {};
+  for (const v of parked) out[v] = countOf(v, parked, spec.vehicleCounts);
+  return out;
+}
+
+export function sameCounts(a: BriefSpec, b: BriefSpec): boolean {
+  const parked = parkedVehicles(a);
+  if (parked.join(",") !== parkedVehicles(b).join(",")) return false;
+  for (const v of parked) {
+    if (countOf(v, parked, a.vehicleCounts) !== countOf(v, parked, b.vehicleCounts)) return false;
+  }
+  return true;
+}
+
 export function isFacing(v: unknown): v is Facing {
   return FACINGS.includes(v as Facing);
 }
@@ -137,17 +223,15 @@ export function parkedVehicles(spec: Pick<BriefSpec, "vehicle" | "vehicles">): P
   return [];
 }
 
-function sameParked(a: BriefSpec, b: BriefSpec): boolean {
-  return parkedVehicles(a).join(",") === parkedVehicles(b).join(",");
-}
-
 export function specsEqual(a: BriefSpec, b: BriefSpec): boolean {
   return (
     a.size === b.size &&
     a.stories === b.stories &&
     a.layout === b.layout &&
     a.entrance === b.entrance &&
-    sameParked(a, b) &&
+    sameCounts(a, b) &&
+    extendWideOf(a) === extendWideOf(b) &&
+    extendHighOf(a) === extendHighOf(b) &&
     a.bay === b.bay &&
     a.airlock === b.airlock &&
     a.cistern === b.cistern &&
@@ -159,23 +243,32 @@ export function specsEqual(a: BriefSpec, b: BriefSpec): boolean {
 
 export function sizeFitsFleet(
   size: SizeId,
-  spec: Pick<BriefSpec, "vehicles" | "vehicle" | "layout" | "bay" | "entrance">,
+  spec: Pick<
+    BriefSpec,
+    "vehicles" | "vehicle" | "vehicleCounts" | "layout" | "bay" | "entrance" | "extendWide"
+  >,
 ): boolean {
   const vehicles = parkedVehicles(spec);
   if (!vehicles.length) return true;
   const hangar = spec.layout === "hangar";
   const shareFace = spec.entrance === spec.bay;
-  const need = fleetNeed(vehicles, hangar, shareFace);
-  const { w, d } = SIZE_DIMS[size];
-  const along = spec.bay === "south" || spec.bay === "north" ? w : d;
-  const deep = spec.bay === "south" || spec.bay === "north" ? d : w;
+  const dims = padDims({ ...spec, size });
+  const along = spec.bay === "south" || spec.bay === "north" ? dims.w : dims.d;
+  const deep = spec.bay === "south" || spec.bay === "north" ? dims.d : dims.w;
+  const need = fleetNeed(vehicles, hangar, shareFace, {
+    counts: spec.vehicleCounts,
+    wrapAlong: along,
+  });
   if (along < need.along) return false;
   if (need.rigid) return deep >= need.depth;
   return Math.max(2, deep - 2) >= 2;
 }
 
 export function minSizeForFleet(
-  spec: Pick<BriefSpec, "vehicles" | "vehicle" | "layout" | "bay" | "entrance">,
+  spec: Pick<
+    BriefSpec,
+    "vehicles" | "vehicle" | "vehicleCounts" | "layout" | "bay" | "entrance" | "extendWide"
+  >,
 ): SizeId {
   const hangar = spec.layout === "hangar";
   for (const id of SIZES) {
@@ -187,7 +280,17 @@ export function minSizeForFleet(
 
 function syncParked(spec: BriefSpec): BriefSpec {
   const vehicles = parkedVehicles(spec);
-  return { ...spec, vehicles, vehicle: primaryVehicle(vehicles) };
+  const extendWide = clampStake(spec.extendWide);
+  const extendHigh = clampStake(spec.extendHigh);
+  const vehicleCounts = countsOf({ ...spec, vehicles });
+  return {
+    ...spec,
+    vehicles,
+    vehicle: primaryVehicle(vehicles),
+    vehicleCounts,
+    extendWide,
+    extendHigh,
+  };
 }
 
 export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: string[] } {
@@ -210,13 +313,32 @@ export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: str
     next.vehicle = "thopter";
     notes.push("A hangar parks an ornithopter.");
   }
+  if ((next.extendWide! > 0 || next.extendHigh! > 0) && next.size !== "advanced") {
+    next.size = "advanced";
+    notes.push("Staking units need an Advanced Sub-Fief (10×10).");
+  }
   const minSize = minSizeForFleet(next);
   if (SIZES.indexOf(next.size) < SIZES.indexOf(minSize)) {
     next.size = minSize;
-    const { w, d } = SIZE_DIMS[minSize];
+    const { w, d } = padDims(next);
     notes.push(
-      `Parking ${describeFleet(next.vehicles!)} needs a ${w}×${d} pad (${SIZE_OPTS.find((o) => o.id === minSize)?.label ?? minSize}).`,
+      `Parking ${describeFleet(next.vehicles!, next.vehicleCounts)} needs a ${w}×${d} pad (${SIZE_OPTS.find((o) => o.id === minSize)?.label ?? minSize}).`,
     );
+  }
+  while (
+    next.extendWide! < MAX_HORIZONTAL_STAKES &&
+    !sizeFitsFleet(next.size, next)
+  ) {
+    next.extendWide = (next.extendWide! + 1) as StakeCount;
+    next.size = "advanced";
+    notes.push(
+      `More garages need another 10-cell strip. Using ${next.extendWide} wide staking unit${next.extendWide === 1 ? "" : "s"}.`,
+    );
+  }
+  const storyCap = maxStoriesFor(next.extendHigh!);
+  if (next.stories > storyCap) {
+    next.stories = storyCap;
+    notes.push(`Vertical staking allows up to ${storyCap} stories here.`);
   }
   if (next.layout === "tower" && next.stories < 3) {
     next.stories = 3;
@@ -248,8 +370,9 @@ export function normalizeSpec(spec: BriefSpec): BriefSpec {
 
 export function parseSpec(raw: unknown): BriefSpec {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const storiesRaw = Number(o.stories);
-  const stories: 1 | 2 | 3 = storiesRaw === 3 ? 3 : storiesRaw === 1 ? 1 : 2;
+  const extendWide = clampStake(o.extendWide);
+  const extendHigh = clampStake(o.extendHigh);
+  const stories = clampStories(o.stories, maxStoriesFor(extendHigh));
   const vehicles = uniqueVehicles(o.vehicles);
   const vehicleField = isVehicle(o.vehicle) ? o.vehicle : DEFAULT_SPEC.vehicle;
   const seeded =
@@ -258,6 +381,10 @@ export function parseSpec(raw: unknown): BriefSpec {
       : vehicleField !== "none" && isParkVehicle(vehicleField)
         ? [vehicleField]
         : [];
+  const rawCounts =
+    o.vehicleCounts && typeof o.vehicleCounts === "object"
+      ? (o.vehicleCounts as VehicleCounts)
+      : {};
   return normalizeSpec({
     size: isSize(o.size) ? o.size : DEFAULT_SPEC.size,
     stories,
@@ -265,6 +392,9 @@ export function parseSpec(raw: unknown): BriefSpec {
     entrance: isFacing(o.entrance) ? o.entrance : DEFAULT_SPEC.entrance,
     vehicle: primaryVehicle(seeded),
     vehicles: seeded,
+    vehicleCounts: rawCounts,
+    extendWide,
+    extendHigh,
     bay: isFacing(o.bay) ? o.bay : DEFAULT_SPEC.bay,
     airlock: o.airlock !== false,
     cistern: o.cistern !== false,
@@ -276,14 +406,19 @@ export function parseSpec(raw: unknown): BriefSpec {
 
 export function describeSpec(spec: BriefSpec): string {
   const s = normalizeSpec(spec);
-  const { w, d } = SIZE_DIMS[s.size];
+  const { w, d } = padDims(s);
   const bits: string[] = [
     `${s.stories}-story ${w}×${d} ${s.layout === "box" ? "box" : s.layout}`,
     `${s.entrance} ${s.airlock ? "airlock" : "people door"}`,
   ];
+  const wide = extendWideOf(s);
+  const high = extendHighOf(s);
+  if (wide || high) {
+    bits.push(`${wide} wide and ${high} high staking units`);
+  }
   const parked = parkedVehicles(s);
   if (parked.length) {
-    bits.push(`${s.bay} two-high garage for ${describeFleet(parked)}`);
+    bits.push(`${s.bay} two-high garage for ${describeFleet(parked, s.vehicleCounts)}`);
   }
   const extras = EXTRA_OPTS.filter((e) => s[e.key])
     .map((e) => e.label.toLowerCase())
@@ -294,7 +429,7 @@ export function describeSpec(spec: BriefSpec): string {
 
 export function nameFromSpec(spec: BriefSpec): string {
   const s = normalizeSpec(spec);
-  const { w, d } = SIZE_DIMS[s.size];
+  const { w, d } = padDims(s);
   const shape =
     s.layout === "tower"
       ? "watchtower"

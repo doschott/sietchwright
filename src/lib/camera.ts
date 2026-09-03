@@ -4,7 +4,7 @@ export type ViewId = "iso" | "top" | "south";
 export type ZoomAction = "in" | "out" | "fit";
 
 export const MIN_DISTANCE = 5;
-export const MAX_DISTANCE = 48;
+export const MAX_DISTANCE = 90;
 export const ZOOM_IN = 0.82;
 export const ZOOM_OUT = 1.22;
 
@@ -18,7 +18,9 @@ export function framedPosition(
   b: Bounds,
   distanceScale = 1,
 ): [number, number, number] {
-  const s = clampDistance(12 * distanceScale) / 12;
+  const span = Math.max(b.maxX - b.minX + 1, b.maxZ - b.minZ + 1, 8);
+  const grow = Math.max(1, span / 8);
+  const s = clampDistance(12 * distanceScale * grow) / 12;
   const tx = b.cx;
   const tz = b.cz;
   if (view === "top") return [tx, 16 * s, tz + 0.18];

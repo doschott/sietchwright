@@ -100,19 +100,74 @@ export function groupStalls(vehicles: ParkVehicleId[]): ParkVehicleId[][] {
   return groups;
 }
 
-/** Shelf-pack along a hangar face. Wrap at 10 cells (advanced sub-fief width). */
-export function fleetStalls(vehicles: ParkVehicleId[], hangar: boolean): PackedStall[] {
-  const groups = groupStalls(vehicles);
-  if (!groups.length) return [];
-  const multi = uniqueVehicles(vehicles).length > 1;
-  const items = groups.map((g) => {
+export const MAX_VEHICLE_COUNT = 4;
+
+export type VehicleCounts = Partial<Record<ParkVehicleId, number>>;
+
+export function countOf(
+  id: ParkVehicleId,
+  vehicles: ParkVehicleId[],
+  counts?: VehicleCounts,
+): number {
+  const parked = uniqueVehicles(vehicles);
+  if (!parked.includes(id)) return 0;
+  const n = counts?.[id];
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.min(MAX_VEHICLE_COUNT, Math.round(n as number)));
+}
+
+export type FleetOpts = {
+  counts?: VehicleCounts;
+  wrapAlong?: number;
+};
+
+function stallItems(
+  vehicles: ParkVehicleId[],
+  hangar: boolean,
+  counts?: VehicleCounts,
+): { vehicle: ParkVehicleId; shared: ParkVehicleId[]; along: number; depth: number }[] {
+  const parked = uniqueVehicles(vehicles);
+  const groups = groupStalls(parked);
+  const multi = parked.length > 1 || parked.some((v) => countOf(v, parked, counts) > 1);
+  const items: { vehicle: ParkVehicleId; shared: ParkVehicleId[]; along: number; depth: number }[] =
+    [];
+  for (const g of groups) {
     const host = g[0]!;
     const size = stallSize(host, hangar, multi);
-    return { vehicle: host, shared: g, along: size.along, depth: size.depth };
-  });
+    const copies = countOf(host, parked, counts);
+    items.push({ vehicle: host, shared: g, along: size.along, depth: size.depth });
+    for (let i = 1; i < copies; i++) {
+      items.push({ vehicle: host, shared: [host], along: size.along, depth: size.depth });
+    }
+    for (const extra of g.slice(1)) {
+      const extraN = countOf(extra, parked, counts);
+      if (extraN <= 1) continue;
+      const extraSize = stallSize(extra, hangar, true);
+      for (let i = 1; i < extraN; i++) {
+        items.push({
+          vehicle: extra,
+          shared: [extra],
+          along: extraSize.along,
+          depth: extraSize.depth,
+        });
+      }
+    }
+  }
+  return items;
+}
+
+/** Shelf-pack along a hangar face. Wrap at 10 cells unless wrapAlong is set. */
+export function fleetStalls(
+  vehicles: ParkVehicleId[],
+  hangar: boolean,
+  opts?: FleetOpts,
+): PackedStall[] {
+  const items = stallItems(vehicles, hangar, opts?.counts);
+  if (!items.length) return [];
   const maxItem = Math.max(...items.map((i) => i.along));
   const totalAlong = items.reduce((s, i) => s + i.along, 0);
-  const maxAlong = Math.max(maxItem, Math.min(10, totalAlong));
+  const cap = opts?.wrapAlong ?? 10;
+  const maxAlong = Math.max(maxItem, Math.min(cap, totalAlong));
   const sorted = [...items].sort((a, b) => b.depth - a.depth || b.along - a.along);
   const out: PackedStall[] = [];
   let rowAlong = 0;
@@ -146,8 +201,9 @@ export function fleetNeed(
   vehicles: ParkVehicleId[],
   hangar: boolean,
   shareFace: boolean,
+  opts?: FleetOpts,
 ): { along: number; depth: number; stalls: PackedStall[]; rigid: boolean } {
-  const stalls = fleetStalls(vehicles, hangar);
+  const stalls = fleetStalls(vehicles, hangar, opts);
   if (!stalls.length) return { along: 0, depth: 0, stalls, rigid: false };
   const ext = packExtent(stalls);
   const rigid =
@@ -160,11 +216,21 @@ export function fleetNeed(
   };
 }
 
-export function describeFleet(vehicles: ParkVehicleId[]): string {
+function countLabel(id: ParkVehicleId, n: number): string {
+  const one = PARK_LABELS[id].toLowerCase();
+  if (n <= 1) return one;
+  if (id === "thopter") return `${n} ornithopters`;
+  if (id === "bike") return `${n} sandbikes`;
+  if (id === "buggy") return `${n} buggies`;
+  if (id === "carrier") return `${n} carriers`;
+  return `${n} crawlers`;
+}
+
+export function describeFleet(vehicles: ParkVehicleId[], counts?: VehicleCounts): string {
   const u = uniqueVehicles(vehicles);
   if (!u.length) return "no vehicles";
-  if (u.length === 1) return PARK_LABELS[u[0]!].toLowerCase();
-  const names = u.map((v) => PARK_LABELS[v].toLowerCase());
+  const names = u.map((v) => countLabel(v, countOf(v, u, counts)));
+  if (names.length === 1) return names[0]!;
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }

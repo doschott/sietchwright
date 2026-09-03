@@ -28,8 +28,8 @@ Three scrolling regions (questionnaire dock, CHOAM kit, inspector) sat on the ca
 
 ## Plan sheet steps
 
-1. Pad, stories, shape, presets (including Advanced fleet hangar)
-2. People door, **which vehicles to park** (multi-select), garage facing
+1. Pad, stories, shape, **how many extensions wide / high** (0–5 each, 10 total), presets
+2. People door, which vehicles to park, **how many of each**, garage facing
 3. Extras (airlock, cistern, workshop, loft, lookout)
 
 After you pick Vehicle hangar on step 1, step 2 lets you tap every vehicle you park. Most people at that point have a 'thopter, a buggy, and a bike. Carrier and crawler are optional and bump the pad to Advanced 10×10.

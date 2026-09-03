@@ -120,6 +120,9 @@ export const useYard = create<State>((set, get) => ({
         patch.vehicle === "none" || !isParkVehicle(patch.vehicle) ? [] : [patch.vehicle];
       merged.vehicle = primaryVehicle(merged.vehicles);
     }
+    if (Object.prototype.hasOwnProperty.call(patch, "vehicleCounts")) {
+      merged.vehicleCounts = { ...(cur.vehicleCounts ?? {}), ...(patch.vehicleCounts ?? {}) };
+    }
     const { spec, notes } = applyConstraints(merged);
     const brief = describeSpec(spec);
     set({ spec, brief, notes });

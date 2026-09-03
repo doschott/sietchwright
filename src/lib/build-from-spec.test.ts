@@ -342,6 +342,57 @@ describe("buildFromSpec", () => {
     assert.ok(plan.rooms.some((r) => /crawler/i.test(r.name)));
   });
 
+  it("one wide staking unit on an advanced south bay is a 20×10 pad", () => {
+    const spec = parseSpec({
+      size: "advanced",
+      layout: "hangar",
+      extendWide: 1,
+      extendHigh: 0,
+      entrance: "east",
+      bay: "south",
+      vehicles: ["thopter"],
+    });
+    assert.equal(spec.size, "advanced");
+    assert.equal(spec.extendWide, 1);
+    const plan = buildFromSpec(spec);
+    const b = boundsOf(plan);
+    assert.equal(b.maxX - b.minX + 1, 20);
+    assert.equal(b.maxZ - b.minZ + 1, 10);
+    assertChecks(spec, "one-wide-stake");
+  });
+
+  it("staking units bump a compact pad to advanced", () => {
+    const s = parseSpec({ size: "compact", extendWide: 2, extendHigh: 1 });
+    assert.equal(s.size, "advanced");
+    assert.equal(s.extendWide, 2);
+    assert.equal(s.extendHigh, 1);
+  });
+
+  it("high staking raises the story cap and two ornithopters get two garages", () => {
+    const spec = parseSpec({
+      size: "advanced",
+      layout: "hangar",
+      stories: 2,
+      extendHigh: 2,
+      entrance: "east",
+      bay: "south",
+      vehicles: ["thopter"],
+      vehicleCounts: { thopter: 2 },
+    });
+    assert.equal(spec.vehicleCounts?.thopter, 2);
+    assertChecks(spec, "two-thopters");
+    const plan = buildFromSpec(spec);
+    const garages = plan.pieces.filter((p) => p.type === "garage_door");
+    assert.equal(garages.length, 2);
+  });
+
+  it("old saves without staking or counts still parse", () => {
+    const s = parseSpec({ size: "keep", vehicle: "buggy", bay: "west" });
+    assert.equal(s.extendWide, 0);
+    assert.equal(s.extendHigh, 0);
+    assert.equal(s.vehicleCounts?.buggy, 1);
+  });
+
   it("legacy single buggy still raises one garage", () => {
     const spec: BriefSpec = {
       size: "keep",

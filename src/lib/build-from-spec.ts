@@ -1,10 +1,10 @@
 import {
   FACE_ROT,
   PARK_LABELS,
-  SIZE_DIMS,
   describeSpec,
   nameFromSpec,
   normalizeSpec,
+  padDims,
   parkedVehicles,
   type BriefSpec,
   type Facing,
@@ -190,7 +190,15 @@ export function bayRect(
 ): Rect | null {
   if (vehicle === "none" && !hangar) return null;
   const parked: ParkVehicleId[] = vehicle === "none" ? ["thopter"] : [vehicle as ParkVehicleId];
-  const world = stallsToWorld(w, d, facing, fleetStalls(parked, hangar), shareFace);
+  const world = stallsToWorld(
+    w,
+    d,
+    facing,
+    fleetStalls(parked, hangar, {
+      wrapAlong: facing === "south" || facing === "north" ? w : d,
+    }),
+    shareFace,
+  );
   return world[0]?.rect ?? null;
 }
 
@@ -383,7 +391,7 @@ function tipsFromSpec(spec: BriefSpec, w: number, d: number): string[] {
 
 export function buildFromSpec(raw: BriefSpec): Plan {
   const spec = normalizeSpec(raw);
-  const { w, d } = SIZE_DIMS[spec.size];
+  const { w, d } = padDims(spec);
   const top = spec.stories - 1;
   const y = new Yard();
   y.name = nameFromSpec(spec);
@@ -417,7 +425,16 @@ export function buildFromSpec(raw: BriefSpec): Plan {
   const shareFace = parked.length > 0 && spec.entrance === spec.bay;
   const worldStalls =
     parked.length > 0
-      ? stallsToWorld(w, d, spec.bay, fleetStalls(parked, spec.layout === "hangar"), shareFace)
+      ? stallsToWorld(
+          w,
+          d,
+          spec.bay,
+          fleetStalls(parked, spec.layout === "hangar", {
+            counts: spec.vehicleCounts,
+            wrapAlong: spec.bay === "south" || spec.bay === "north" ? w : d,
+          }),
+          shareFace,
+        )
       : [];
   const bay = unionRect(worldStalls.map((s) => s.rect));
   let court = spec.layout === "courtyard" ? courtRect(w, d) : null;
@@ -658,7 +675,7 @@ function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
 
 export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
   const spec = normalizeSpec(raw);
-  const { w, d } = SIZE_DIMS[spec.size];
+  const { w, d } = padDims(spec);
   const b = boundsOf(plan);
   const counts = countPieces(plan);
   const padW = b.maxX - b.minX + 1;
