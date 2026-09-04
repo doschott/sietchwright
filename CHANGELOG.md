@@ -4,6 +4,10 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- `package-lock.json` is generated with npm 10.9.8 (Node 22) so GitHub Actions `npm ci` finds the optional `lru-cache@11.5.2` peer. npm 11 on Node 26 omitted that entry and turned CI red.
+
 ### Added
 
 - Starter 4×4 vehicle hangar is a real option. Compact pads stack a garage under the fly-in

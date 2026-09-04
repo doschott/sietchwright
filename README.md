@@ -2,7 +2,7 @@
 
 In-browser **Dune: Awakening** CHOAM-kit 3D base planner.
 
-Answer a short questionnaire (pad size, stories, shape, door facing, vehicle bay). Sietchwright raises a schematic you can orbit, zoom, inspect, and share: foundations, walls, two-high garage doors, stairs, hatches, the whole standard set.
+Answer a short questionnaire (pad size, stories, shape, door facing, vehicle bay). Sietchwright raises a schematic you can orbit, zoom, inspect, and share: foundations, walls, garage doors, hangar pentashields, stairs, hatches, starter shops.
 
 **Live:** [sietchwright.com](https://sietchwright.com)
 
@@ -22,8 +22,8 @@ It stays in your browser. No account. No database. The last yard is saved in `lo
 
 ## What you can do
 
-1. **Plan.** Pad, stories, shape, staking units (wide/high, 0-5 each), people door, parked vehicles and how many, extras.
-2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. Each vehicle stall gets a two-cell-wide, two-story garage on the wall you named.
+1. **Plan.** Pad (Starter 4×4 hangar is allowed), stories (up to five without staking), shape, staking units (wide/high, 0-5 each), people door, parked vehicles and how many, storage crate size, extras.
+2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. A sandbike shares a buggy bay. Scout ornithopters use a two-high garage. Assault and carrier fly in through a three-high pentashield, not a garage door.
 3. **See.** Iso, top, and south cameras. **Inside** hides the roof so you can read rooms. A **N** marker under the name card is yard north. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
 4. **Modify.** Change answers and raise again, or place extra CHOAM pieces by hand from the kit.
 5. **Build in-game.** Inspector lists in-game names, cell, story, facing, and a granite bill.
@@ -49,7 +49,7 @@ Now:
 
 ## Run locally
 
-Node 22+.
+Node 22+ (CI and Vercel use Node 22 with npm 10, same as the committed lockfile). Do not regenerate `package-lock.json` with npm 11.
 
 ```bash
 npm ci
@@ -63,6 +63,8 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+Those four commands are what GitHub Actions job `check` runs after checkout.
 
 ## Docs
 
@@ -82,8 +84,10 @@ npm run build
 ## CHOAM notes
 
 - Grid is square. Rotation `0` is south (`+Z`), `90` east, `180` north, `270` west. The N compass under the title tracks yard north (`−Z`).
-- **Garage Door** is modeled as two cells along the wall and two stories tall. Funcom has not published the cell math; measure in-client if you are doing a precision hangar. A 1-story request with a vehicle is raised to two stories so the door fits.
-- Courtyard leaves an open inner court. Hangar keeps a double-height bay sized for every vehicle you ticked.
+- **Garage Door** is modeled as two cells along the wall and two stories tall. Funcom has not published the cell math; measure in-client if you are doing a precision hangar. A 1-story request with a ground vehicle is raised to two stories so the door fits.
+- **Scout** hangars are two stories. **Assault** and **carrier** hangars are a three-high vertical pentashield, not a garage door.
+- Starter 4×4 hangar is allowed: garage under the fly-in. Stories go to five without staking units.
+- Courtyard leaves an open inner court. Hangar living is vertical on tight pads.
 - Granite in the bill is CHOAM **Facility** (Advanced Construction Kit), from [awakening.wiki](https://awakening.wiki/CHOAM_Facility_Set).
 
 ## Contributing
