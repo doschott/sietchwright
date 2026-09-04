@@ -9,3 +9,4 @@
 - Placeables are markers (0 granite). They are not CHOAM kit pieces.
 - Four outer corners are CHOAM Corner Columns, rotated to the vertex, every story. Center Columns stay interior and out of hangar halls.
 - The pad the player ticks is the pad we raise. Fleet math packs tight; it does not upgrade the fief.
+- No open drop on the roof. Stair climb is a Hatch plus stairs or a ladder. Cistern hatch stays inside unless it is itself the roof.

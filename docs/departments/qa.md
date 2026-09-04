@@ -17,3 +17,4 @@ New:
 - Corner Columns on the four outer vertices every story (rotated), not Center Columns in the room
 - Starter 4×4 hangar and Keep 7×7 hangar keep the picked pad size
 - Center Columns stay out of hangar halls and courtyard open sky
+- Five-story starter hangar: every roof cell is Rooftop or Hatch; roof Hatch has stairs or a ladder; cistern does not open the cap

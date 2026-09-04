@@ -40,7 +40,7 @@ Zoom is a pulse (`zoomBy('in' | 'out' | 'fit')`) consumed by `CameraRig` in `src
 | `src/lib/vehicles.ts` | Stall sizes and fleet packing |
 | `src/lib/stations.ts` | Starter shops and storage crate packing |
 | `src/lib/support.ts` | Corner Column posts and interior Center Column grid |
-| `src/lib/cutaway.ts` | Inside view: hide roof, ghost outer walls and floors |
+| `src/lib/cutaway.ts` | Inside view: hide roof, ghost outer walls and floors. Roof vs floor hatch. |
 | `src/lib/build-from-spec.ts` | Deterministic geometry |
 | `src/lib/pieces.ts` | CHOAM Facility table |
 | `src/lib/plan.ts` | Plan, bounds, piece counts |

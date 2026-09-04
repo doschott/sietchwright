@@ -3,29 +3,12 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { compassYaw, framedPosition, zoomOffset } from "@/lib/camera";
-import { pieceGhostInCutaway, pieceHiddenInCutaway } from "@/lib/cutaway";
+import { hatchIsRoof, pieceGhostInCutaway, pieceHiddenInCutaway } from "@/lib/cutaway";
 import { isEdgeType } from "@/lib/pieces";
 import { boundsOf } from "@/lib/plan";
 import { useYard } from "@/lib/store";
 import { PieceMesh } from "./PieceMesh";
 import { Sand } from "./Sand";
-
-function hatchIsRoof(
-  pieces: { type: string; x: number; y: number; z: number }[],
-  x: number,
-  y: number,
-  z: number,
-): boolean {
-  const hasFloor = pieces.some(
-    (p) => p.type === "floor" && p.x === x && p.y === y && p.z === z,
-  );
-  const hasRoof = pieces.some(
-    (p) => p.type === "rooftop" && p.x === x && p.y === y && p.z === z,
-  );
-  if (y === 0) return true;
-  if (hasRoof && !hasFloor) return true;
-  return false;
-}
 
 function CameraRig() {
   const view = useYard((s) => s.view);

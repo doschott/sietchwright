@@ -112,7 +112,7 @@ Sietchwright's solo thopter bay is sized for a **scout** plus walk-around. Pick 
 ## Airlock, water, power
 
 - **Airlock** is not a kit piece. It is a door + passageway vestibule so the living volume stays enclosed when the garage is open.
-- **Cisterns** go inside. **Windtraps** need sky; they fail if Enclosed/Watersealed. The planner's cistern extra is a hatch, not a windtrap.
+- **Cisterns** go inside. **Windtraps** need sky; they fail if Enclosed/Watersealed. The planner's cistern extra is a hatch, not a windtrap. On a raise taller than two stories the cistern hatch stays on the interior deck and the rooftop above it is closed. A stair climb is a Hatch on the roof with stairs or a ladder in that column. Courtyard open sky is not a roof.
 - Power, taxes, and Deep Desert wipes are out of scope. Taxes were removed in 1.3.
 
 ## Competitors

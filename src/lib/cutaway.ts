@@ -11,6 +11,30 @@ const ENVELOPE_TYPES = new Set<PieceType>([
   "pentashield",
 ]);
 
+/**
+ * A hatch is a roof cap when it sits on the top story, on a one-story pad,
+ * or on a cell that has rooftop and no floor.
+ */
+export function hatchIsRoof(
+  pieces: { type: string; x: number; y: number; z: number }[],
+  x: number,
+  y: number,
+  z: number,
+): boolean {
+  if (y === 0) return true;
+  let maxY = 0;
+  let hasFloor = false;
+  let hasRoof = false;
+  for (const p of pieces) {
+    if (p.y > maxY) maxY = p.y;
+    if (p.x !== x || p.z !== z || p.y !== y) continue;
+    if (p.type === "floor") hasFloor = true;
+    if (p.type === "rooftop") hasRoof = true;
+  }
+  if (y === maxY) return true;
+  return hasRoof && !hasFloor;
+}
+
 /** Roof and rails hide in Inside view so rooms read as a dollhouse. */
 export function pieceHiddenInCutaway(
   type: PieceType,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   cutawayGhostStyle,
+  hatchIsRoof,
   pieceGhostInCutaway,
   pieceHiddenInCutaway,
 } from "./cutaway.ts";
@@ -43,6 +44,17 @@ describe("inside / cutaway", () => {
     assert.equal(pieceGhostInCutaway({ type: "floor", x: 1, z: 1, rot: 0 }, bounds), true);
     assert.equal(pieceHiddenInCutaway("floor", false), false);
     assert.equal(pieceGhostInCutaway({ type: "corner_column", x: 0, z: 0, rot: 0 }, bounds), false);
+  });
+
+  it("a hatch on the top story is a roof cap even when rooftop was skipped", () => {
+    const pieces = [
+      { type: "rooftop", x: 1, y: 4, z: 1 },
+      { type: "hatch", x: 0, y: 4, z: 0 },
+      { type: "hatch", x: 2, y: 1, z: 2 },
+    ];
+    assert.equal(hatchIsRoof(pieces, 0, 4, 0), true);
+    assert.equal(hatchIsRoof(pieces, 2, 1, 2), false);
+    assert.equal(hatchIsRoof(pieces, 0, 0, 0), true);
   });
 
   it("cutawayGhostStyle is see-through on floors and envelope, opaque off", () => {

@@ -10,6 +10,7 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 - The pad you pick is the pad we raise. Fleet packing clamps into it instead of upgrading the fief
 - Inside view ghosts floor slabs so you can see every story, not only the top two
 - Inside view applies ghost opacity as material props (walls and garage doors included). A Three.js `instanceof Mesh` walk did not run in the live bundle, so the roof hid but the envelope stayed solid
+- The top of the raise is closed. A stair cell is a roof Hatch with stairs. A cistern no longer punches a hole in a tall roof
 - `package-lock.json` is generated with npm 10.9.8 (Node 22) so GitHub Actions `npm ci` finds the optional `lru-cache@11.5.2` peer. npm 11 on Node 26 omitted that entry and turned CI red.
 
 ### Added

@@ -635,9 +635,16 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     y.deck(s, 0, 0, w - 1, d - 1, skip, "floor", room);
   }
 
+  const cisternHatchStory = spec.cistern
+    ? spec.stories === 1
+      ? 0
+      : Math.min(1, top)
+    : null;
   const skipRoof = new Set(openSky);
   if (stair) skipRoof.add(key(stair.x, stair.z));
-  if (cisternCell) skipRoof.add(key(cisternCell.x, cisternCell.z));
+  if (cisternCell && cisternHatchStory === top) {
+    skipRoof.add(key(cisternCell.x, cisternCell.z));
+  }
   y.deck(top, 0, 0, w - 1, d - 1, skipRoof, "rooftop", spec.lookout ? "look" : "live");
 
   if (stair && spec.stories > 1) {
@@ -654,7 +661,7 @@ export function buildFromSpec(raw: BriefSpec): Plan {
   }
 
   if (cisternCell) {
-    const hy = spec.stories === 1 ? 0 : Math.min(1, top);
+    const hy = cisternHatchStory ?? 0;
     y.add("hatch", cisternCell.x, hy, cisternCell.z, 0, "water");
     y.add(
       "ladder",
@@ -959,6 +966,37 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
           p.type === "small_storage" ||
           p.type === "storage_container" ||
           p.type === "medium_storage",
+      ),
+    });
+  }
+  const topY = Math.max(0, spec.stories - 1);
+  const court = spec.layout === "courtyard" ? courtRect(w, d) : null;
+  const roofCap = new Set(
+    plan.pieces
+      .filter((p) => (p.type === "rooftop" || p.type === "hatch") && p.y === topY)
+      .map((p) => key(p.x, p.z)),
+  );
+  let roofClosed = true;
+  for (let x = 0; x < w; x++) {
+    for (let z = 0; z < d; z++) {
+      if (court && inRect(court, x, z)) continue;
+      if (!roofCap.has(key(x, z))) roofClosed = false;
+    }
+  }
+  checks.push({ label: "Roof is closed or a hatch", ok: roofClosed });
+  const climbHatches = plan.pieces.filter(
+    (p) => p.type === "hatch" && p.y === topY && p.room !== "water",
+  );
+  if (climbHatches.length) {
+    checks.push({
+      label: "Roof hatch has stairs or a ladder",
+      ok: climbHatches.every((h) =>
+        plan.pieces.some(
+          (p) =>
+            (p.type === "stairs" || p.type === "ladder") &&
+            p.x === h.x &&
+            p.z === h.z,
+        ),
       ),
     });
   }

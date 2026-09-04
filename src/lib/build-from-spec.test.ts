@@ -650,6 +650,41 @@ describe("buildFromSpec", () => {
     }
   });
 
+  it("five-story starter hangar has no open drop on the roof", () => {
+    const spec = parseSpec({
+      size: "starter",
+      stories: 5,
+      layout: "hangar",
+      lookout: true,
+      cistern: true,
+      vehicles: ["buggy", "scout"],
+    });
+    assertChecks(spec, "roof-closed");
+    const plan = buildFromSpec(spec);
+    const top = spec.stories - 1;
+    const caps = new Set(
+      plan.pieces
+        .filter((p) => (p.type === "rooftop" || p.type === "hatch") && p.y === top)
+        .map((p) => `${p.x},${p.z}`),
+    );
+    assert.equal(caps.size, 16);
+    const roofHatch = plan.pieces.find((p) => p.type === "hatch" && p.y === top);
+    assert.ok(roofHatch);
+    assert.equal(
+      plan.pieces.some(
+        (p) =>
+          (p.type === "stairs" || p.type === "ladder") &&
+          p.x === roofHatch!.x &&
+          p.z === roofHatch!.z,
+      ),
+      true,
+    );
+    const cisternHatch = plan.pieces.find((p) => p.type === "hatch" && p.room === "water");
+    assert.ok(cisternHatch);
+    assert.ok(cisternHatch!.y < top);
+    assert.equal(caps.has(`${cisternHatch!.x},${cisternHatch!.z}`), true);
+  });
+
   it("stories 5 are allowed with no staking", () => {
     const spec = parseSpec({ size: "keep", stories: 5, layout: "box" });
     assert.equal(spec.stories, 5);
