@@ -79,6 +79,7 @@ function GhostStd({
   const g = cutawayGhostStyle(ghost, kind);
   return (
     <meshStandardMaterial
+      key={ghost ? `ghost-${kind}` : "solid"}
       color={color}
       roughness={roughness}
       metalness={metalness}
