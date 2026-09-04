@@ -77,6 +77,12 @@ Sietchwright keeps this simple:
 
 We do not simulate underground, worms, or snapping onto POIs.
 
+## Corner columns (needed on every raise)
+
+In-game, **Corner Column** is the support beam that sits in a wall corner and holds every floor tile that touches that vertex. **Center Column** only holds the cell above it and belongs in the middle of a room, not on a building corner.
+
+Sietchwright places a Corner Column on each outer vertex, every story, rotated to that vertex. Pads 8 cells or wider also get interior Center Columns on a 5-cell grid. See [docs/support.md](support.md).
+
 ## Vehicle bays (player-measured, not Funcom tables)
 
 Door size is not parking size. Leave walk-around unless you want a coffin garage.

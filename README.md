@@ -24,7 +24,7 @@ It stays in your browser. No account. No database. The last yard is saved in `lo
 
 1. **Plan.** Pad (Starter 4×4 hangar is allowed), stories (up to five without staking), shape, staking units (wide/high, 0-5 each), people door, parked vehicles and how many, storage crate size, extras.
 2. **Raise.** One click builds a deterministic schematic. The people door sits on the wall you named. A sandbike shares a buggy bay. Scout ornithopters use a two-high garage. Assault and carrier fly in through a three-high pentashield, not a garage door.
-3. **See.** Iso, top, and south cameras. **Inside** hides the roof so you can read rooms. A **N** marker under the name card is yard north. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
+3. **See.** Iso, top, and south cameras. **Inside** hides the roof and ghosts floors so every story reads, not only the top deck. A **N** marker under the name card is yard north. Zoom in, zoom out, or fit the yard. Hide menus (`H`) when you want a clear look at the build.
 4. **Modify.** Change answers and raise again, or place extra CHOAM pieces by hand from the kit.
 5. **Build in-game.** Inspector lists in-game names, cell, story, facing, and a granite bill.
 6. **Share.** Tweet the name, piece count, and brief. The link is always `https://sietchwright.com`.
@@ -72,6 +72,7 @@ Those four commands are what GitHub Actions job `check` runs after checkout.
 |-----|----------------|
 | [docs/architecture.md](docs/architecture.md) | How the app is put together |
 | [docs/choam.md](docs/choam.md) | In-game CHOAM Facility facts the planner uses |
+| [docs/support.md](docs/support.md) | Corner columns, pad size lock, Inside view |
 | [docs/ui.md](docs/ui.md) | Menu system, zoom, personas |
 | [docs/keyboard.md](docs/keyboard.md) | Shortcuts |
 | [docs/deploy.md](docs/deploy.md) | Vercel, CI, custom domain |

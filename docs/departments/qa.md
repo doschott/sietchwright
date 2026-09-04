@@ -13,4 +13,7 @@ New:
 - Bike + buggy → one garage door
 - Assault is 3 stories of opening; scout is 2
 - Starter hangar preset has chests and shop markers on a deck above the garage
-- Inside cutaway still hides the roof and ghosts outer walls
+- Inside cutaway still hides the roof and ghosts outer walls and floor slabs
+- Corner Columns on the four outer vertices every story (rotated), not Center Columns in the room
+- Starter 4×4 hangar and Keep 7×7 hangar keep the picked pad size
+- Center Columns stay out of hangar halls and courtyard open sky

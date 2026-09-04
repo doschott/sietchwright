@@ -20,6 +20,7 @@ import {
   wallCenterY,
   yaw,
 } from "@/lib/grid";
+import { cornerOffset } from "@/lib/support";
 import { PIECES, isPlaceable } from "@/lib/pieces";
 import type { PlacedPiece } from "@/lib/plan";
 import { markerTexture } from "./markers";
@@ -484,9 +485,10 @@ function pose(
     };
   }
   if (type === "corner_column") {
+    const { dx, dz } = cornerOffset(rot);
     return {
-      pos: [x + 0.08, wallCenterY(y), z + 0.08],
-      rotY: 0,
+      pos: [x + dx, wallCenterY(y), z + dz],
+      rotY: yaw(rot),
       marker: [0, WALL_H / 2 + 0.18, 0],
     };
   }
@@ -573,7 +575,8 @@ export function PieceMesh({
         }
         if (ghost) {
           m.transparent = true;
-          m.opacity = Math.min(0.18, m.userData._baseOpacity);
+          const cap = piece.type === "floor" ? 0.07 : 0.18;
+          m.opacity = Math.min(cap, m.userData._baseOpacity);
           m.depthWrite = false;
         } else {
           m.opacity = m.userData._baseOpacity;
@@ -582,7 +585,7 @@ export function PieceMesh({
         }
       }
     });
-  }, [ghost, piece.id, selected, hovered, color]);
+  }, [ghost, piece.id, piece.type, selected, hovered, color]);
 
   if (hidden) return null;
 

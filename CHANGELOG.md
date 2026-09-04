@@ -6,6 +6,9 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ### Fixed
 
+- Four outer corners now use CHOAM **Corner Columns** (rotated to the outer vertex) on every story, not Center Columns in the room
+- The pad you pick is the pad we raise. Fleet packing clamps into it instead of upgrading the fief
+- Inside view ghosts floor slabs so you can see every story, not only the top two
 - `package-lock.json` is generated with npm 10.9.8 (Node 22) so GitHub Actions `npm ci` finds the optional `lru-cache@11.5.2` peer. npm 11 on Node 26 omitted that entry and turned CI red.
 
 ### Added

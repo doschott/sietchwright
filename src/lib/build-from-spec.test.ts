@@ -566,6 +566,90 @@ describe("buildFromSpec", () => {
     assert.equal(overlap, false);
   });
 
+  it("keeps starter 4×4 when hangar parks a buggy and scout", () => {
+    const s = parseSpec({
+      size: "starter",
+      layout: "hangar",
+      vehicles: ["buggy", "scout"],
+    });
+    assert.equal(s.size, "starter");
+  });
+
+  it("keeps keep 7×7 with a hangar fleet", () => {
+    const s = parseSpec({
+      size: "keep",
+      layout: "hangar",
+      vehicles: ["scout", "buggy", "bike"],
+    });
+    assert.equal(s.size, "keep");
+  });
+
+  it("raises Corner Columns on the four outer vertices, not Center Columns in the room", () => {
+    const plan = buildFromSpec(
+      parseSpec({ size: "starter", stories: 2, layout: "box", vehicle: "none" }),
+    );
+    const corners = plan.pieces.filter((p) => p.type === "corner_column");
+    const centers = plan.pieces.filter((p) => p.type === "center_column");
+    assert.equal(corners.length, 8);
+    assert.equal(centers.length, 0);
+    assert.equal(new Set(corners.map((c) => c.rot)).size, 4);
+  });
+
+  it("puts Corner Columns on every story of a five-story keep", () => {
+    const spec = parseSpec({ size: "keep", stories: 5, layout: "box" });
+    const plan = buildFromSpec(spec);
+    const corners = plan.pieces.filter((p) => p.type === "corner_column");
+    assert.equal(corners.length, 20);
+  });
+
+  it("does not plant Center Columns in a hangar hall or courtyard", () => {
+    const hangar = buildFromSpec(
+      parseSpec({
+        size: "advanced",
+        layout: "hangar",
+        stories: 5,
+        vehicles: ["carrier"],
+        bay: "south",
+      }),
+    );
+    const floors = new Set(
+      hangar.pieces
+        .filter((p) => p.type === "floor")
+        .map((p) => `${p.y}:${p.x},${p.z}`),
+    );
+    for (const c of hangar.pieces.filter((p) => p.type === "center_column")) {
+      if (c.y === 0) {
+        assert.equal(
+          hangar.pieces.some(
+            (p) => p.type === "floor" && p.y === 1 && p.x === c.x && p.z === c.z,
+          ),
+          true,
+          `ground Center Column at ${c.x},${c.z} sits under a hangar void`,
+        );
+      } else {
+        assert.equal(
+          floors.has(`${c.y}:${c.x},${c.z}`),
+          true,
+          `Center Column at ${c.x},${c.z} story ${c.y} has no floor`,
+        );
+      }
+    }
+
+    const court = buildFromSpec(
+      parseSpec({ size: "advanced", layout: "courtyard", stories: 2, vehicle: "none" }),
+    );
+    const roofKeys = new Set(
+      court.pieces.filter((p) => p.type === "rooftop").map((p) => `${p.x},${p.z}`),
+    );
+    for (const c of court.pieces.filter((p) => p.type === "center_column")) {
+      assert.equal(
+        roofKeys.has(`${c.x},${c.z}`),
+        true,
+        `Center Column at ${c.x},${c.z} sits in courtyard open sky`,
+      );
+    }
+  });
+
   it("stories 5 are allowed with no staking", () => {
     const spec = parseSpec({ size: "keep", stories: 5, layout: "box" });
     assert.equal(spec.stories, 5);

@@ -230,7 +230,7 @@ export const PIECES: Record<PieceType, PieceDef> = {
     code: "CN",
     name: "Corner Column",
     inGame: "Corner Column",
-    hint: "Support post on the south-west corner of the cell.",
+    hint: "Support beam in a wall corner. Rotate so it sits on the outer vertex. Needed on all four corners, every story.",
     kind: "post",
     granite: 10,
     marker: "#3f342a",

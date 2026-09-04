@@ -34,4 +34,11 @@ describe("inside / cutaway", () => {
       false,
     );
   });
+
+  it("ghosts floor slabs so lower stories show in Inside view", () => {
+    assert.equal(pieceGhostInCutaway({ type: "floor", x: 1, z: 1, rot: 0 }, bounds), true);
+    assert.equal(pieceHiddenInCutaway("floor", false), false);
+    assert.equal(pieceGhostInCutaway({ type: "corner_column", x: 0, z: 0, rot: 0 }, bounds), false);
+  });
 });
+

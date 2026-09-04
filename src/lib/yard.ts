@@ -173,6 +173,17 @@ export class Yard {
     return this;
   }
 
+  supportPost(
+    kind: "corner" | "center",
+    x: number,
+    y: number,
+    z: number,
+    rot: Rot = 0,
+    room?: string,
+  ): this {
+    return this.add(kind === "corner" ? "corner_column" : "center_column", x, y, z, rot, room);
+  }
+
   settle(): Plan {
     const spans: PlacedPiece[] = [];
     const spanKeys = new Set<string>();

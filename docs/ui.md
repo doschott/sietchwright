@@ -41,7 +41,7 @@ Raise is always on the bottom dock, so you can raise the defaults without finish
 ## North and inside
 
 - A **N** compass sits under the Sietchwright name card. It rotates with the camera so N always points at yard north (−Z).
-- **Inside** (key `I`) hides the roof and ghosts the outer walls so you can see rooms, stairs, and the vehicle halls. Iso / Top / South still work.
+- **Inside** (key `I`) hides the roof, ghosts outer walls **and floor slabs**, so every story reads, not only the top deck. Stairs, hatches, corner columns, and shop markers stay solid.
 
 ## Personas we designed for
 

@@ -18,7 +18,6 @@ import {
   extendWideOf,
   maxStoriesFor,
   parkedVehicles,
-  sizeFitsFleet,
   specsEqual,
   type BriefSpec,
   type Facing,
@@ -245,8 +244,7 @@ export function PromptDock() {
                 ...o,
                 disabled:
                   (spec.layout === "courtyard" && o.id === "starter") ||
-                  (spec.layout === "tower" && o.id === "compound") ||
-                  (parked.length > 0 && !sizeFitsFleet(o.id, spec)),
+                  (spec.layout === "tower" && o.id === "compound"),
               }))}
               onChange={(size: SizeId) => setSpec({ size })}
               hint={

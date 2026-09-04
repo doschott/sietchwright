@@ -11,6 +11,7 @@ import {
 } from "./spec.ts";
 import { GARAGE_W, PENTA_H, PENTA_H_MIN, PENTA_W, garageAlong, type Rot } from "./grid.ts";
 import { orderShopCells, packStations } from "./stations.ts";
+import { supportPosts } from "./support.ts";
 import {
   fleetStalls,
   packExtent,
@@ -725,15 +726,28 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     }
   }
 
-  const corners: Array<[number, number]> = [
-    [0, 0],
-    [w - 1, 0],
-    [0, d - 1],
-    [w - 1, d - 1],
-  ];
+  const posts = supportPosts(w, d);
   for (let s = 0; s <= top; s++) {
     if (spec.lookout && s === top) continue;
-    y.columnsAt(corners, s);
+    for (const p of posts) {
+      if (p.kind === "center") {
+        if (openSky.has(key(p.x, p.z))) continue;
+        let inHall = false;
+        for (const stall of worldStalls) {
+          if (!inRect(stall.rect, p.x, p.z)) continue;
+          const rise =
+            stall.opening === "pentashield"
+              ? Math.min(stall.rise || PENTA_H, top - stall.story + 1)
+              : stall.rise || 2;
+          if (s >= stall.story && s < stall.story + rise) {
+            inHall = true;
+            break;
+          }
+        }
+        if (inHall) continue;
+      }
+      y.supportPost(p.kind, p.x, s, p.z, p.rot, "live");
+    }
   }
 
   const shopStory = worldStalls.some((s) => s.story >= 3)
@@ -948,6 +962,11 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
       ),
     });
   }
+  const corners = plan.pieces.filter((p) => p.type === "corner_column");
+  checks.push({
+    label: "Corner columns on four outer corners",
+    ok: corners.length >= 4 * (spec.lookout ? Math.max(1, spec.stories - 1) : spec.stories),
+  });
   if (parked.includes("assault")) {
     const penta = pentas[0];
     checks.push({

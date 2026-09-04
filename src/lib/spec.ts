@@ -353,22 +353,10 @@ export function applyConstraints(spec: BriefSpec): { spec: BriefSpec; notes: str
     next.size = "advanced";
     notes.push("Staking units need an Advanced Sub-Fief (10×10).");
   }
-  const minSize = minSizeForFleet(next);
-  if (SIZES.indexOf(next.size) < SIZES.indexOf(minSize)) {
-    next.size = minSize;
+  if (!sizeFitsFleet(next.size, next) && next.vehicles!.length) {
     const { w, d } = padDims(next);
     notes.push(
-      `Parking ${describeFleet(next.vehicles!, next.vehicleCounts)} needs a ${w}×${d} pad (${SIZE_OPTS.find((o) => o.id === minSize)?.label ?? minSize}).`,
-    );
-  }
-  while (
-    next.extendWide! < MAX_HORIZONTAL_STAKES &&
-    !sizeFitsFleet(next.size, next)
-  ) {
-    next.extendWide = (next.extendWide! + 1) as StakeCount;
-    next.size = "advanced";
-    notes.push(
-      `More garages need another 10-cell strip. Using ${next.extendWide} wide staking unit${next.extendWide === 1 ? "" : "s"}.`,
+      `Tight pack on this ${w}×${d} pad for ${describeFleet(next.vehicles!, next.vehicleCounts)}.`,
     );
   }
   if (next.layout === "tower" && next.stories < 3) {
