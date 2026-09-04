@@ -34,3 +34,19 @@ export function pieceGhostInCutaway(
   if (piece.rot === 270 && piece.x === b.minX) return true;
   return false;
 }
+
+/**
+ * Material flags for Inside view. Applied as R3F material props, not a
+ * post-pass `instanceof THREE.Mesh` walk (duplicate Three copies miss that).
+ */
+export function cutawayGhostStyle(
+  ghost: boolean,
+  type: PieceType,
+): { transparent: boolean; opacity: number; depthWrite: boolean } {
+  if (!ghost) return { transparent: false, opacity: 1, depthWrite: true };
+  return {
+    transparent: true,
+    opacity: type === "floor" ? 0.07 : 0.18,
+    depthWrite: false,
+  };
+}

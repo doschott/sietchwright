@@ -1,6 +1,7 @@
 import { Billboard } from "@react-three/drei";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { cutawayGhostStyle } from "@/lib/cutaway";
 import {
   deckY,
   edgeWorld,
@@ -21,7 +22,7 @@ import {
   yaw,
 } from "@/lib/grid";
 import { cornerOffset } from "@/lib/support";
-import { PIECES, isPlaceable } from "@/lib/pieces";
+import { PIECES, isPlaceable, type PieceType } from "@/lib/pieces";
 import type { PlacedPiece } from "@/lib/plan";
 import { markerTexture } from "./markers";
 
@@ -60,8 +61,36 @@ function Marker({
   );
 }
 
+const GhostKind = createContext<{ ghost: boolean; kind: PieceType }>({
+  ghost: false,
+  kind: "wall",
+});
+
+function GhostStd({
+  color,
+  roughness = 0.88,
+  metalness = 0.04,
+}: {
+  color: string;
+  roughness?: number;
+  metalness?: number;
+}) {
+  const { ghost, kind } = useContext(GhostKind);
+  const g = cutawayGhostStyle(ghost, kind);
+  return (
+    <meshStandardMaterial
+      color={color}
+      roughness={roughness}
+      metalness={metalness}
+      transparent={g.transparent}
+      opacity={g.opacity}
+      depthWrite={g.depthWrite}
+    />
+  );
+}
+
 function Stone({ color }: { color: string }) {
-  return <meshStandardMaterial color={color} roughness={0.88} metalness={0.04} />;
+  return <GhostStd color={color} />;
 }
 
 function FoundationBody({ color }: { color: string }) {
@@ -312,19 +341,19 @@ function GarageBody({ color }: { color: string }) {
     <group>
       <mesh position={[-(w / 2 - post / 2), 0, 0]} castShadow receiveShadow>
         <boxGeometry args={[post, h, t]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.22} />
+        <GhostStd color={color} roughness={0.55} metalness={0.22} />
       </mesh>
       <mesh position={[w / 2 - post / 2, 0, 0]} castShadow receiveShadow>
         <boxGeometry args={[post, h, t]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.22} />
+        <GhostStd color={color} roughness={0.55} metalness={0.22} />
       </mesh>
       <mesh position={[0, h / 2 - 0.07, 0]} castShadow receiveShadow>
         <boxGeometry args={[innerW, 0.14, t]} />
-        <meshStandardMaterial color={color} roughness={0.5} metalness={0.25} />
+        <GhostStd color={color} roughness={0.5} metalness={0.25} />
       </mesh>
       <mesh position={[0, -h / 2 + 0.05, 0]} castShadow receiveShadow>
         <boxGeometry args={[innerW, 0.1, t]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.2} />
+        <GhostStd color={color} roughness={0.55} metalness={0.2} />
       </mesh>
       {Array.from({ length: slats }, (_, i) => (
         <mesh
@@ -334,7 +363,7 @@ function GarageBody({ color }: { color: string }) {
           receiveShadow
         >
           <boxGeometry args={[innerW * 0.98, slatH * 0.82, t * 0.7]} />
-          <meshStandardMaterial
+          <GhostStd
             color={i % 2 === 0 ? "#5c5850" : "#4e4a44"}
             roughness={0.45}
             metalness={0.32}
@@ -343,7 +372,7 @@ function GarageBody({ color }: { color: string }) {
       ))}
       <mesh position={[0, -h * 0.18, t * 0.55]}>
         <boxGeometry args={[0.22, 0.06, 0.04]} />
-        <meshStandardMaterial color="#1c1a18" roughness={0.4} metalness={0.5} />
+        <GhostStd color="#1c1a18" roughness={0.4} metalness={0.5} />
       </mesh>
     </group>
   );
@@ -559,34 +588,6 @@ export function PieceMesh({
   const { pos, rotY, marker } = pose(piece, hatchAsRoof);
   const groupRef = useRef<THREE.Group>(null);
 
-  useLayoutEffect(() => {
-    const root = groupRef.current;
-    if (!root) return;
-    root.traverse((obj) => {
-      if (!(obj instanceof THREE.Mesh)) return;
-      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
-      for (const mat of materials) {
-        if (!mat || !("opacity" in mat)) continue;
-        const m = mat as THREE.MeshStandardMaterial;
-        if (m.userData._baseOpacity == null) {
-          m.userData._baseOpacity = m.opacity;
-          m.userData._baseTransparent = m.transparent;
-          m.userData._baseDepthWrite = m.depthWrite;
-        }
-        if (ghost) {
-          m.transparent = true;
-          const cap = piece.type === "floor" ? 0.07 : 0.18;
-          m.opacity = Math.min(cap, m.userData._baseOpacity);
-          m.depthWrite = false;
-        } else {
-          m.opacity = m.userData._baseOpacity;
-          m.transparent = m.userData._baseTransparent;
-          m.depthWrite = m.userData._baseDepthWrite;
-        }
-      }
-    });
-  }, [ghost, piece.id, piece.type, selected, hovered, color]);
-
   if (hidden) return null;
 
   return (
@@ -607,7 +608,9 @@ export function PieceMesh({
         onSelect(piece.id);
       }}
     >
-      {bodyFor(piece, color)}
+      <GhostKind.Provider value={{ ghost, kind: piece.type }}>
+        {bodyFor(piece, color)}
+      </GhostKind.Provider>
       {selected ? (
         piece.type === "garage_door" || piece.type === "pentashield" ? (
           <mesh>

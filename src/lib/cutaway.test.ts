@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { pieceGhostInCutaway, pieceHiddenInCutaway } from "./cutaway.ts";
+import {
+  cutawayGhostStyle,
+  pieceGhostInCutaway,
+  pieceHiddenInCutaway,
+} from "./cutaway.ts";
 
 const bounds = { minX: 0, maxX: 5, minZ: 0, maxZ: 4, maxY: 1, cx: 3, cz: 2 };
 
@@ -39,6 +43,24 @@ describe("inside / cutaway", () => {
     assert.equal(pieceGhostInCutaway({ type: "floor", x: 1, z: 1, rot: 0 }, bounds), true);
     assert.equal(pieceHiddenInCutaway("floor", false), false);
     assert.equal(pieceGhostInCutaway({ type: "corner_column", x: 0, z: 0, rot: 0 }, bounds), false);
+  });
+
+  it("cutawayGhostStyle is see-through on floors and envelope, opaque off", () => {
+    assert.deepEqual(cutawayGhostStyle(false, "wall"), {
+      transparent: false,
+      opacity: 1,
+      depthWrite: true,
+    });
+    const wall = cutawayGhostStyle(true, "wall");
+    assert.equal(wall.transparent, true);
+    assert.equal(wall.depthWrite, false);
+    assert.equal(wall.opacity, 0.18);
+    const floor = cutawayGhostStyle(true, "floor");
+    assert.equal(floor.opacity, 0.07);
+    assert.equal(floor.transparent, true);
+    const garage = cutawayGhostStyle(true, "garage_door");
+    assert.equal(garage.transparent, true);
+    assert.equal(garage.depthWrite, false);
   });
 });
 
