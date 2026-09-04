@@ -50,7 +50,7 @@ Launch **Wide Door** is a different piece: two cells wide, one story. Buggies hi
 
 | Id | Cells | Notes |
 |----|-------|--------|
-| starter | 4×4 | Tight. Tutorial in-game is 2×2; a real basic fief is closer to 5×5. |
+| starter | 4×4 | Planner pad. Tutorial in-game is 2×2; a real basic fief is closer to 5×5. Compact hangars still stack a garage under a 'thopter here. |
 | compact | 6×5 | Default. |
 | keep | 7×7 | Courtyard works here. |
 | compound | 9×6 | Scout hangars, or a 'thopter + buggy + bike row. |
@@ -72,7 +72,7 @@ Sietchwright keeps this simple:
 
 - Questions: how many **wide** (0–5) and how many **high** (0–5).
 - Wide grows the pad by 10 cells along the garage wall (or east-west if there is no garage).
-- High raises the story cap: `3 + high`, max 8. We do not emit 12–40 wall-tiles of empty air.
+- High raises the story cap: `5 + high`, max 8. We do not emit 12–40 wall-tiles of empty air. A basic fief already reaches five wall-tiles; staking is extra.
 - Any staking unit bumps the pad to Advanced 10×10.
 
 We do not simulate underground, worms, or snapping onto POIs.
@@ -83,9 +83,10 @@ Door size is not parking size. Leave walk-around unless you want a coffin garage
 
 | Vehicle | Tight / in-game | Planner stall | Opening |
 |---------|-----------------|---------------|---------|
-| Sandbike | 1×1 to 1×2 | 2×2 (solo hangar still 4×3) | Garage Door 2×2 |
-| Buggy | 2×2 (1×2 is tight) | 3×3 | Garage Door 2×2 |
-| Scout ornithopter | 2×3 to 3×3 | 4×4 (solo hangar still 5×4) | Garage Door 2×2 |
+| Sandbike | 1×1 to 1×2 | Shares a buggy bay. Solo still 2×2 / hangar 4×3 | Garage Door 2×2 |
+| Buggy | 2×2 (1×2 is tight) | 3×3. Bike parks here too | Garage Door 2×2 |
+| Scout ornithopter | 2×3 to 3×3, **two** wall-tiles high | 4×4 (solo hangar still 5×4). May share an assault hall | Garage Door 2×2 |
+| Assault ornithopter | bulkier than scout, **three** wall-tiles high (guides 2×6 / 3×6 floor) | 4×5, clamped on tight pads | **Pentashield** 3 high, never a 2×2 garage |
 | Sandcrawler | 3×4 well in many guides | **2×2 drive-in** (user layout: driven in at ground) | **Garage Door** 2 cells wide × 2 stories. Not a pentashield. |
 | Carrier ornithopter | 5×6 min floor, 6×10 proper | **5×6** fly-in hall | **Pentashield Surface Vertical**, never a garage door. Wiki min opening 2×4; we emit **4 wide × 3 high** when stories allow (else 4×2). |
 
@@ -93,7 +94,8 @@ Sources: [awakening.wiki Carrier Ornithopter](https://awakening.wiki/Carrier_Orn
 
 **Fleet packing**
 
-- Bike, buggy, and scout each get their own stall when no carrier is selected. A 'thopter + buggy + bike row is 9×4 and fits Compound 9×6.
+- Bike and buggy share one stall. Scout and assault share an assault hall. Extra counts still add stalls.
+- On Starter 4×4 / Compact hangars, ground craft sit at story 0 and the fly-in sits above (story 2, or 3 when a shops deck is inserted).
 - A **carrier hall is 5×6**. Scout, buggy, and bike with count 1 park in that hall.
 - A **crawler is a 2×2 ground garage** with a Garage Door. It is driven in.
 - **Carrier + crawler stack:** the crawler garage sits on the ground under the carrier hall. The carrier flies in through a pentashield on the same face, starting at story 2 (above the two-high garage). That wants five stories (2 for the garage + 3 for the pentashield).

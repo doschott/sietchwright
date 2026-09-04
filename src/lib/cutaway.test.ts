@@ -12,6 +12,8 @@ describe("inside / cutaway", () => {
     assert.equal(pieceHiddenInCutaway("hatch", false), false);
     assert.equal(pieceHiddenInCutaway("wall", false), false);
     assert.equal(pieceHiddenInCutaway("stairs", false), false);
+    assert.equal(pieceHiddenInCutaway("chest", false), false);
+    assert.equal(pieceHiddenInCutaway("fabricator", false), false);
   });
 
   it("ghosts only the outer envelope, not interior partitions", () => {

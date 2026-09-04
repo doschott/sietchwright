@@ -36,8 +36,9 @@ Zoom is a pulse (`zoomBy('in' | 'out' | 'fit')`) consumed by `CameraRig` in `src
 
 | Path | Role |
 |------|------|
-| `src/lib/spec.ts` | Questions, presets, constraints |
+| `src/lib/spec.ts` | Questions, presets, constraints. Story cap 5 without staking. Storage type. |
 | `src/lib/vehicles.ts` | Stall sizes and fleet packing |
+| `src/lib/stations.ts` | Starter shops and storage crate packing |
 | `src/lib/build-from-spec.ts` | Deterministic geometry |
 | `src/lib/cutaway.ts` | Inside-view hide / ghost rules |
 | `src/lib/pieces.ts` | CHOAM Facility table |

@@ -30,9 +30,11 @@ Three scrolling regions (questionnaire dock, CHOAM kit, inspector) sat on the ca
 
 1. Pad, stories, shape, **how many extensions wide / high** (0–5 each, 10 total), presets
 2. People door, which vehicles to park, **how many of each**, garage facing
-3. Extras (airlock, cistern, workshop, loft, lookout)
+3. Storage crate size, then extras (airlock, cistern, starter shops, loft, lookout)
 
-After you pick Vehicle hangar on step 1, step 2 lets you tap every vehicle you park. Most people at that point have a 'thopter, a buggy, and a bike. Carrier and crawler are optional and bump the pad to Advanced 10×10.
+After you pick Vehicle hangar on step 1, step 2 lets you tap every vehicle you park. Scout and assault are different 'thopters. Sandbike shares a buggy bay. Carrier and crawler still want Advanced 10×10. Starter 4×4 hangar stacks the garage under the fly-in. **Starter hangar** is the preset for that.
+
+Stories go to five without staking. That is a basic fief height, not a staking unit.
 
 Raise is always on the bottom dock, so you can raise the defaults without finishing every step.
 

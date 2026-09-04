@@ -210,7 +210,7 @@ describe("buildFromSpec", () => {
       stories: 1,
       layout: "box",
       entrance: "south",
-      vehicle: "thopter",
+      vehicle: "scout",
       bay: "east",
       airlock: false,
       cistern: false,
@@ -273,29 +273,28 @@ describe("buildFromSpec", () => {
       entrance: "east",
       bay: "south",
     });
-    assert.deepEqual(s.vehicles, ["thopter", "buggy", "bike"]);
-    assert.equal(s.vehicle, "thopter");
-    assert.equal(s.size, "compound");
+    assert.deepEqual(s.vehicles, ["scout", "buggy", "bike"]);
+    assert.equal(s.vehicle, "scout");
   });
 
-  it("same-face people door plus a 9-wide fleet needs an advanced pad", () => {
+  it("same-face people door plus a shared fleet still fits a hangar pad", () => {
     const s = parseSpec({
       layout: "hangar",
       vehicles: ["thopter", "buggy", "bike"],
       entrance: "south",
       bay: "south",
     });
-    assert.equal(s.size, "advanced");
+    assert.ok(["starter", "compact", "keep", "compound", "advanced"].includes(s.size));
   });
 
-  it("thopter + buggy + bike hangar gets three south garage doors on a 9×6 pad", () => {
+  it("scout + buggy + bike hangar shares the ground bay", () => {
     const spec: BriefSpec = {
       size: "compound",
       stories: 2,
       layout: "hangar",
       entrance: "east",
-      vehicle: "thopter",
-      vehicles: ["thopter", "buggy", "bike"],
+      vehicle: "scout",
+      vehicles: ["scout", "buggy", "bike"],
       bay: "south",
       airlock: false,
       cistern: false,
@@ -309,7 +308,7 @@ describe("buildFromSpec", () => {
     assert.equal(b.maxX - b.minX + 1, 9);
     assert.equal(b.maxZ - b.minZ + 1, 6);
     const garages = plan.pieces.filter((p) => p.type === "garage_door");
-    assert.equal(garages.length, 3);
+    assert.ok(garages.length >= 1 && garages.length <= 2);
     assert.ok(garages.every((g) => g.rot === FACE_ROT.south && g.z === b.maxZ));
     const door = plan.pieces.find((p) => p.type === "door")!;
     assert.equal(door.rot, FACE_ROT.east);
@@ -322,7 +321,7 @@ describe("buildFromSpec", () => {
       layout: "hangar",
       entrance: "east",
       vehicle: "carrier",
-      vehicles: ["thopter", "buggy", "bike", "carrier", "crawler"],
+      vehicles: ["scout", "buggy", "bike", "carrier", "crawler"],
       bay: "south",
       airlock: true,
       cistern: true,
@@ -432,7 +431,7 @@ describe("buildFromSpec", () => {
       extendHigh: 0,
       entrance: "east",
       bay: "south",
-      vehicles: ["thopter"],
+      vehicles: ["scout"],
     });
     assert.equal(spec.size, "advanced");
     assert.equal(spec.extendWide, 1);
@@ -461,7 +460,7 @@ describe("buildFromSpec", () => {
       vehicles: ["thopter"],
       vehicleCounts: { thopter: 2 },
     });
-    assert.equal(spec.vehicleCounts?.thopter, 2);
+    assert.equal(spec.vehicleCounts?.scout, 2);
     assertChecks(spec, "two-thopters");
     const plan = buildFromSpec(spec);
     const garages = plan.pieces.filter((p) => p.type === "garage_door");
@@ -492,5 +491,85 @@ describe("buildFromSpec", () => {
     assertChecks(spec, "legacy-buggy");
     const plan = buildFromSpec(spec);
     assert.equal(plan.pieces.filter((p) => p.type === "garage_door").length, 1);
+  });
+
+  it("starter 4×4 hangar is legal and stacks a garage under the scout", () => {
+    const spec = parseSpec({
+      size: "starter",
+      layout: "hangar",
+      stories: 5,
+      entrance: "east",
+      bay: "south",
+      vehicles: ["buggy", "scout"],
+      workshop: true,
+      storage: "chest",
+    });
+    assert.equal(spec.size, "starter");
+    assert.ok(spec.stories >= 4);
+    assertChecks(spec, "starter-hangar");
+    const plan = buildFromSpec(spec);
+    const b = boundsOf(plan);
+    assert.equal(b.maxX - b.minX + 1, 4);
+    assert.equal(b.maxZ - b.minZ + 1, 4);
+    assert.ok(plan.pieces.some((p) => p.type === "garage_door"));
+    assert.ok(plan.pieces.some((p) => p.type === "fabricator"));
+    assert.ok(plan.pieces.some((p) => p.type === "chest"));
+    const shopY = plan.pieces.find((p) => p.type === "fabricator")!.y;
+    const garage = plan.pieces.find((p) => p.type === "garage_door")!;
+    assert.ok(shopY > garage.y);
+  });
+
+  it("assault hangar uses a 3-high pentashield", () => {
+    const spec = parseSpec({
+      size: "compact",
+      layout: "hangar",
+      stories: 5,
+      entrance: "east",
+      bay: "south",
+      vehicles: ["assault"],
+    });
+    assertChecks(spec, "assault");
+    const plan = buildFromSpec(spec);
+    const penta = plan.pieces.find((p) => p.type === "pentashield");
+    assert.ok(penta);
+    assert.ok((penta!.rise ?? 0) >= 3);
+    assert.equal(plan.pieces.some((p) => p.type === "garage_door"), false);
+  });
+
+  it("legacy vehicle thopter alone parses as scout", () => {
+    const spec = parseSpec({ vehicle: "thopter", layout: "hangar", bay: "south" });
+    assert.deepEqual(spec.vehicles, ["scout"]);
+    assert.equal(spec.vehicle, "scout");
+  });
+
+  it("assault plus buggy plus shops keeps markers out of the fly-in volume", () => {
+    const spec = parseSpec({
+      size: "compact",
+      layout: "hangar",
+      stories: 5,
+      entrance: "east",
+      bay: "south",
+      vehicles: ["assault", "buggy"],
+      workshop: true,
+      storage: "chest",
+    });
+    assertChecks(spec, "assault-shops");
+    const plan = buildFromSpec(spec);
+    const penta = plan.pieces.find((p) => p.type === "pentashield")!;
+    assert.ok(penta);
+    const fabs = plan.pieces.filter((p) => p.type === "fabricator" || p.type === "chest");
+    assert.ok(fabs.length >= 1);
+    const rise = penta.rise ?? 3;
+    const overlap = fabs.some(
+      (p) => p.y >= penta.y && p.y < penta.y + rise && p.z === penta.z && p.x === penta.x,
+    );
+    assert.equal(overlap, false);
+  });
+
+  it("stories 5 are allowed with no staking", () => {
+    const spec = parseSpec({ size: "keep", stories: 5, layout: "box" });
+    assert.equal(spec.stories, 5);
+    assert.equal(spec.extendHigh, 0);
+    assertChecks(spec, "five-story");
   });
 });

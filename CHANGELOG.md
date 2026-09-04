@@ -4,17 +4,30 @@ All notable changes to Sietchwright are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Starter 4×4 vehicle hangar is a real option. Compact pads stack a garage under the fly-in
+- Stories 1–5 with no staking units. Vertical staking still raises the cap toward 8
+- Scout ornithopter (two high, garage) and assault ornithopter (three high, pentashield) as separate vehicles. Old `thopter` saves are scout
+- Sandbike shares a buggy bay. Scout may share an assault hall
+- Storage question on step 3: none, chests, small containers, storage containers, medium
+- Starter hangar preset: 4×4, five stories, buggy garage, scout above, chests, starter shops
+- Placeable markers for chests and starter fabs/refineries on their own deck
+- Windows on every story so Inside view reads as stacked floors
+
+### Changed
+
+- Workshop extra is labeled Starter shops (fabricator, vehicle, weapons, survival, garment, small chemical, small ore)
+- Hangar living is vertical. Starter is no longer greyed out for Vehicle hangar
+- GitHub Actions `checkout` and `setup-node` are v7
+- Dependabot groups npm patch/minor updates and ignores TypeScript and `@types/node` majors
+
 ### Removed
 
 - Grok template auth, app-data, and database leftover (`src/lib/auth`, `src/lib/app-data`, `src/lib/db.ts`)
 - Unused template packages (Better Auth, jose, kysely, pglite, pg, react-table, unused Radix/form/chart kits)
 
-### Changed
-
-- GitHub Actions `checkout` and `setup-node` are v7
-- Dependabot groups npm patch/minor updates and ignores TypeScript and `@types/node` majors
-
-### Added
+### Added (earlier this week)
 
 - Plan step 1: how many staking units wide and high (0-5 each, Advanced fief, 10 total)
 - Plan step 2: how many of each parked vehicle (1-4), with extra garages when the count is more than one

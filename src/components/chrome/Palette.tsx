@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PIECE_LIST } from "@/lib/pieces";
+import { KIT_LIST } from "@/lib/pieces";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ export function Palette() {
   const placeStory = useYard((s) => s.placeStory);
   const setPlaceStory = useYard((s) => s.setPlaceStory);
   const setOverlay = useYard((s) => s.setOverlay);
+  const stories = useYard((s) => s.spec.stories);
 
   return (
     <section
@@ -21,7 +22,7 @@ export function Palette() {
         <p className="text-xs font-medium tracking-wide text-muted">CHOAM kit</p>
         <div className="flex items-center gap-1">
           <div className="flex overflow-hidden rounded-md border border-border">
-            {[0, 1, 2].map((s) => (
+            {Array.from({ length: Math.max(3, stories) }, (_, s) => s).map((s) => (
               <button
                 key={s}
                 type="button"
@@ -51,7 +52,7 @@ export function Palette() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="grid grid-cols-1 gap-0.5">
-          {PIECE_LIST.map((p) => {
+          {KIT_LIST.map((p) => {
             const on = placeType === p.type;
             return (
               <button

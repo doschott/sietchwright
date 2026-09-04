@@ -20,7 +20,7 @@ import {
   wallCenterY,
   yaw,
 } from "@/lib/grid";
-import { PIECES, type PieceType } from "@/lib/pieces";
+import { PIECES, isPlaceable } from "@/lib/pieces";
 import type { PlacedPiece } from "@/lib/plan";
 import { markerTexture } from "./markers";
 
@@ -408,7 +408,24 @@ function bodyFor(piece: PlacedPiece, color: string) {
       return <RailingBody color={color} />;
     case "ladder":
       return <LadderBody color={color} />;
+    default:
+      return <StationBody color={color} />;
   }
+}
+
+function StationBody({ color }: { color: string }) {
+  return (
+    <group>
+      <mesh castShadow receiveShadow position={[0, 0.2, 0]}>
+        <boxGeometry args={[0.52, 0.4, 0.52]} />
+        <Stone color={color} />
+      </mesh>
+      <mesh position={[0, 0.42, 0]}>
+        <boxGeometry args={[0.38, 0.06, 0.38]} />
+        <meshStandardMaterial color="#1a1612" roughness={0.6} metalness={0.2} />
+      </mesh>
+    </group>
+  );
 }
 
 function pose(
@@ -420,6 +437,13 @@ function pose(
   marker: [number, number, number];
 } {
   const { x, y, z, rot, type } = piece;
+  if (isPlaceable(type)) {
+    return {
+      pos: [x + 0.5, deckY(y) + 0.02, z + 0.5],
+      rotY: yaw(rot),
+      marker: [0, 0.55, 0],
+    };
+  }
   if (type === "foundation") {
     return { pos: [x + 0.5, FOUND_H / 2, z + 0.5], rotY: 0, marker: [0, 0.28, 0] };
   }

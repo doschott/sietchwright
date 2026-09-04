@@ -1,4 +1,4 @@
-import { PIECE_LIST } from "@/lib/pieces";
+import { KIT_LIST } from "@/lib/pieces";
 
 export function Legend() {
   return (
@@ -7,7 +7,7 @@ export function Legend() {
         Piece marks
       </p>
       <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
-        {PIECE_LIST.map((p) => (
+        {KIT_LIST.map((p) => (
           <li key={p.type} className="flex items-center gap-1.5 text-xs text-muted">
             <span
               className="inline-flex min-w-7 justify-center rounded-sm px-1 py-0.5 font-mono text-xs font-semibold text-fg"

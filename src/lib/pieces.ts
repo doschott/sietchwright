@@ -16,6 +16,17 @@ export const PIECE_TYPES = [
   "corner_column",
   "railing",
   "ladder",
+  "chest",
+  "small_storage",
+  "storage_container",
+  "medium_storage",
+  "fabricator",
+  "vehicle_fabricator",
+  "weapons_fabricator",
+  "survival_fabricator",
+  "garment_fabricator",
+  "small_chemical",
+  "small_ore",
 ] as const;
 
 export type PieceType = (typeof PIECE_TYPES)[number];
@@ -27,7 +38,8 @@ export type PieceKind =
   | "rise"
   | "cap"
   | "post"
-  | "climb";
+  | "climb"
+  | "placeable";
 
 export type PieceDef = {
   type: PieceType;
@@ -249,9 +261,148 @@ export const PIECES: Record<PieceType, PieceDef> = {
     stone: "#7a5a3c",
     letter: "E",
   },
+  chest: {
+    type: "chest",
+    code: "CH",
+    name: "Chest",
+    inGame: "Chest",
+    hint: "20 slots, 750v. Iron. What most new players actually place.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#8a6238",
+    stone: "#a07040",
+    letter: "C",
+  },
+  small_storage: {
+    type: "small_storage",
+    code: "SS",
+    name: "Small Storage",
+    inGame: "Small Storage Container",
+    hint: "10 slots, 250v. Salvaged metal. The first box you can build.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#6a5848",
+    stone: "#7a6858",
+    letter: "S",
+  },
+  storage_container: {
+    type: "storage_container",
+    code: "SC",
+    name: "Storage Container",
+    inGame: "Storage Container",
+    hint: "45 slots, 1,750v. Aluminum. Mid-game crate.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#5a6a70",
+    stone: "#6a7a80",
+    letter: "B",
+  },
+  medium_storage: {
+    type: "medium_storage",
+    code: "MS",
+    name: "Medium Storage",
+    inGame: "Medium Storage Container",
+    hint: "100 slots, 3,500v. Plastanium. Late crate.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#4a5a88",
+    stone: "#5a6a98",
+    letter: "M",
+  },
+  fabricator: {
+    type: "fabricator",
+    code: "FB",
+    name: "Fabricator",
+    inGame: "Fabricator",
+    hint: "Basic bench. Salvaged metal. First real crafting table.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#c4a05a",
+    stone: "#d4b06a",
+    letter: "F",
+  },
+  vehicle_fabricator: {
+    type: "vehicle_fabricator",
+    code: "VF",
+    name: "Vehicle Fab",
+    inGame: "Vehicles Fabricator",
+    hint: "Buggy and 'thopter parts. Steel + complex machinery.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#4a7a9a",
+    stone: "#5a8aaa",
+    letter: "V",
+  },
+  weapons_fabricator: {
+    type: "weapons_fabricator",
+    code: "WF",
+    name: "Weapons Fab",
+    inGame: "Weapons Fabricator",
+    hint: "Guns and blades. Steel + complex machinery.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#8a4a4a",
+    stone: "#9a5a5a",
+    letter: "W",
+  },
+  survival_fabricator: {
+    type: "survival_fabricator",
+    code: "SF",
+    name: "Survival Fab",
+    inGame: "Survival Fabricator",
+    hint: "Tools and stillsuit gear. Steel + complex machinery.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#4a8a5a",
+    stone: "#5a9a6a",
+    letter: "U",
+  },
+  garment_fabricator: {
+    type: "garment_fabricator",
+    code: "GF",
+    name: "Garment Fab",
+    inGame: "Garment Fabricator",
+    hint: "Clothes and armor cloth. Steel + complex machinery.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#7a5a8a",
+    stone: "#8a6a9a",
+    letter: "G",
+  },
+  small_chemical: {
+    type: "small_chemical",
+    code: "CR",
+    name: "Small Chemical",
+    inGame: "Small Chemical Refinery",
+    hint: "Fuel cells, silicone, cobalt paste. Copper.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#3a7a6a",
+    stone: "#4a8a7a",
+    letter: "Y",
+  },
+  small_ore: {
+    type: "small_ore",
+    code: "OR",
+    name: "Small Ore",
+    inGame: "Small Ore Refinery",
+    hint: "Copper, iron, steel. Salvaged metal.",
+    kind: "placeable",
+    granite: 0,
+    marker: "#8a6a3a",
+    stone: "#9a7a4a",
+    letter: "O",
+  },
 };
 
 export const PIECE_LIST: PieceDef[] = PIECE_TYPES.map((t) => PIECES[t]);
+
+/** CHOAM structure only. Placeables stay off the kit so the sheet stays short. */
+export const KIT_LIST: PieceDef[] = PIECE_LIST.filter((p) => p.kind !== "placeable");
+
+export function isPlaceable(t: PieceType): boolean {
+  return PIECES[t].kind === "placeable";
+}
 
 export const EDGE_PRIORITY: PieceType[] = [
   "pentashield",

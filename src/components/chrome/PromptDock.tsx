@@ -28,6 +28,7 @@ import {
   type StakeCount,
   type StoryCount,
 } from "@/lib/spec";
+import { STORAGE_OPTS, type StorageId } from "@/lib/stations";
 import { useYard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -157,12 +158,11 @@ export function PromptDock() {
 
   const parked = parkedVehicles(spec);
   const needsTwo = parked.length > 0 || spec.loft || spec.lookout || spec.layout === "tower";
-  const hangarLike = spec.layout === "hangar" || spec.layout === "courtyard";
 
   function toggleVehicle(id: ParkVehicleId) {
     const has = parked.includes(id);
     let next = has ? parked.filter((v) => v !== id) : [...parked, id];
-    if (spec.layout === "hangar" && next.length === 0) next = ["thopter"];
+    if (spec.layout === "hangar" && next.length === 0) next = ["scout"];
     const vehicleCounts = { ...spec.vehicleCounts };
     if (next.includes(id) && !has) vehicleCounts[id] = 1;
     if (!next.includes(id)) delete vehicleCounts[id];
@@ -244,7 +244,7 @@ export function PromptDock() {
               options={SIZE_OPTS.map((o) => ({
                 ...o,
                 disabled:
-                  (hangarLike && o.id === "starter") ||
+                  (spec.layout === "courtyard" && o.id === "starter") ||
                   (spec.layout === "tower" && o.id === "compound") ||
                   (parked.length > 0 && !sizeFitsFleet(o.id, spec)),
               }))}
@@ -253,7 +253,7 @@ export function PromptDock() {
                 parked.includes("carrier") || (parked.includes("crawler") && parked.length > 1)
                   ? "A carrier plus a crawler fills an Advanced 10×10 pad."
                   : spec.layout === "hangar"
-                    ? "Hangar needs at least Compact 6×5. A 'thopter, buggy, and bike need Compound 9×6."
+                    ? "Starter 4×4 stacks a garage under the fly-in. Assault wants three wall-tiles of height."
                     : spec.layout === "courtyard"
                       ? "Courtyard needs at least Compact 6×5."
                       : undefined
@@ -267,11 +267,13 @@ export function PromptDock() {
               hint={
                 spec.layout === "tower"
                   ? "A watchtower is three stories."
-                  : parked.length
-                    ? "Garage doors are two cells tall, so two stories."
-                    : extendHighOf(spec)
-                      ? `Vertical staking raises the cap to ${storyCap} stories.`
-                      : undefined
+                  : parked.includes("assault")
+                    ? "Assault hangars are three wall-tiles high. Five stories fit a garage under one."
+                    : parked.length
+                      ? "Garage doors are two cells tall. A basic fief reaches five stories."
+                      : extendHighOf(spec)
+                        ? `Vertical staking raises the cap to ${storyCap} stories.`
+                        : "A basic fief reaches five stories without staking units."
               }
             />
             <ChipGroup
@@ -331,8 +333,8 @@ export function PromptDock() {
               noneDisabled={spec.layout === "hangar"}
               hint={
                 spec.layout === "hangar"
-                  ? "Most hangars park a 'thopter, buggy, and bike. Carrier and crawler also fit an Advanced 10×10 pad. Tap every vehicle you own."
-                  : "Tap every vehicle you park. A hangar shape sizes the bay for the whole set."
+                  ? "Sandbike shares a buggy bay. Scout is the small 'thopter (two high). Assault is three high and tight for new pilots. Carrier and crawler need Advanced 10×10."
+                  : "Tap every vehicle you park. Sandbike fits in a buggy bay. Scout and assault are different craft."
               }
             />
             {parked.map((id) => (
@@ -365,6 +367,13 @@ export function PromptDock() {
         ) : null}
         {step === 2 ? (
           <div className="space-y-3">
+            <ChipGroup
+              question="What storage can you place?"
+              value={(spec.storage ?? "none") as StorageId}
+              options={STORAGE_OPTS}
+              onChange={(storage: StorageId) => setSpec({ storage })}
+              hint="Chests are 20 slots. Small containers are 10. Many new players only have those two."
+            />
             <div>
               <p className="mb-1.5 text-xs font-medium tracking-wide text-muted">
                 What else is inside?

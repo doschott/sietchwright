@@ -10,6 +10,7 @@ import {
   type Facing,
 } from "./spec.ts";
 import { GARAGE_W, PENTA_H, PENTA_H_MIN, PENTA_W, garageAlong, type Rot } from "./grid.ts";
+import { orderShopCells, packStations } from "./stations.ts";
 import {
   fleetStalls,
   packExtent,
@@ -131,6 +132,7 @@ export type WorldStall = {
   shared: ParkVehicleId[];
   rect: Rect;
   story: number;
+  rise: number;
   opening: OpeningKind;
 };
 
@@ -166,6 +168,7 @@ export function stallsToWorld(
       shared: s.shared,
       rect: faceRect(w, d, facing, u0, u1, v0, v1),
       story: s.story,
+      rise: s.rise,
       opening: s.opening,
     };
   });
@@ -194,7 +197,7 @@ export function bayRect(
   shareFace: boolean,
 ): Rect | null {
   if (vehicle === "none" && !hangar) return null;
-  const parked: ParkVehicleId[] = vehicle === "none" ? ["thopter"] : [vehicle as ParkVehicleId];
+  const parked: ParkVehicleId[] = vehicle === "none" ? ["scout"] : [vehicle as ParkVehicleId];
   const world = stallsToWorld(
     w,
     d,
@@ -387,11 +390,22 @@ function tipsFromSpec(spec: BriefSpec, w: number, d: number): string[] {
   const parked = parkedVehicles(spec);
   if (parked.length) {
     const names = parked.map((v) => PARK_LABELS[v].toLowerCase()).join(", ");
-    tips.push(
-      `${spec.bay} Garage Door is two cells wide and two stories tall. Keep the ${names} bay clear.`,
-    );
+    if (parked.includes("assault") && !parked.includes("carrier")) {
+      tips.push(
+        `${spec.bay} assault opening is a three-high pentashield. Scout is two-high. Keep the ${names} bay clear.`,
+      );
+    } else {
+      tips.push(
+        `${spec.bay} Garage Door is two cells wide and two stories tall. Keep the ${names} bay clear.`,
+      );
+    }
   }
-  if (spec.workshop) tips.push("Workshop is a walled alcove off the hall, through a Passageway.");
+  if (spec.workshop) {
+    tips.push("Starter shops (fabs and small refineries) sit on their own deck, not the garage floor.");
+  }
+  if (spec.storage && spec.storage !== "none") {
+    tips.push("Storage markers show crate size. Chests are what most new players can place.");
+  }
   if (spec.cistern) tips.push("Cistern hatch in a back corner. Ladder on that wall.");
   if (spec.stories > 1) tips.push("Stairs climb a back corner. Hatch and ladder share that stack.");
   if (spec.lookout) tips.push("Rail the roof so the lookout is walkable.");
@@ -412,11 +426,12 @@ export function buildFromSpec(raw: BriefSpec): Plan {
   if (spec.airlock) y.room("foyer", "Airlock", "One-cell sand lock so storms stay outside.");
   const parked = parkedVehicles(spec);
   if (parked.length === 1) {
-    y.room(
-      "bay",
-      "Vehicle bay",
-      `Double-height volume behind a two-high garage door for a ${PARK_LABELS[parked[0]!].toLowerCase()}.`,
-    );
+    const only = parked[0]!;
+    const how =
+      only === "assault" || only === "carrier"
+        ? "Fly-in volume behind a three-high pentashield"
+        : "Double-height volume behind a two-high garage door";
+    y.room("bay", "Vehicle bay", `${how} for a ${PARK_LABELS[only].toLowerCase()}.`);
   } else if (parked.length > 1) {
     y.room(
       "bay",
@@ -424,7 +439,12 @@ export function buildFromSpec(raw: BriefSpec): Plan {
       "Double-height halls behind two-high garage doors. Smaller craft share a carrier hall; a crawler gets its own well.",
     );
   }
-  if (spec.workshop) y.room("shop", "Workshop", "Benches, ore, and storage.");
+  if (spec.workshop) {
+    y.room("shop", "Starter shops", "Fabricators and small refineries. Not the advanced benches.");
+  }
+  if (spec.storage && spec.storage !== "none") {
+    y.room("store", "Storage", "Crates the player can actually build at this stage.");
+  }
   if (spec.cistern) y.room("water", "Cistern", "Water tanks under a hatch.");
   if (spec.loft) y.room("loft", "Sleeping loft", "Beds on the upper deck.");
   if (spec.lookout) y.room("look", "Lookout", "Railed roof watch.");
@@ -441,6 +461,12 @@ export function buildFromSpec(raw: BriefSpec): Plan {
           fleetStalls(parked, spec.layout === "hangar", {
             counts: spec.vehicleCounts,
             wrapAlong: spec.bay === "south" || spec.bay === "north" ? w : d,
+            wrapDepth: spec.bay === "south" || spec.bay === "north" ? d : w,
+            insertShops:
+              (spec.workshop || (spec.storage && spec.storage !== "none")) &&
+              parked.includes("scout") &&
+              !parked.includes("assault") &&
+              parked.some((v) => v === "bike" || v === "buggy"),
           }),
           shareFace,
         )
@@ -486,8 +512,8 @@ export function buildFromSpec(raw: BriefSpec): Plan {
           : GARAGE_W;
       const rise =
         stall.opening === "pentashield"
-          ? Math.max(PENTA_H_MIN, Math.min(PENTA_H, top - stall.story + 1))
-          : 2;
+          ? Math.max(PENTA_H_MIN, Math.min(stall.rise || PENTA_H, top - stall.story + 1))
+          : Math.min(stall.rise || 2, 2);
       const origin = openingOriginFromBay(stall.rect, spec.bay, width);
       garageOrigins.push({ ...origin, stall, width, rise });
       reserved.add(key(origin.x, origin.z));
@@ -551,7 +577,10 @@ export function buildFromSpec(raw: BriefSpec): Plan {
         y.room(room, label, `${how}${extra}`);
       }
       const opening = bayInteriorOpening(stall.rect, spec.bay);
-      const rise = stall.opening === "pentashield" ? Math.min(PENTA_H, top - stall.story + 1) : 2;
+      const rise =
+        stall.opening === "pentashield"
+          ? Math.min(stall.rise || PENTA_H, top - stall.story + 1)
+          : stall.rise || 2;
       addRoomWalls(
         y,
         rectKeys(stall.rect),
@@ -574,7 +603,7 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     : null;
   if (cisternCell) reserved.add(key(cisternCell.x, cisternCell.z));
 
-  if (spec.workshop) {
+  if (spec.workshop && w >= 6 && d >= 5) {
     const shop = pickShop(w, d, reserved);
     if (shop) {
       for (const k of rectKeys(shop)) reserved.add(k);
@@ -593,7 +622,10 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     if (stair) skip.add(key(stair.x, stair.z));
     if (cisternCell && s === Math.min(1, top)) skip.add(key(cisternCell.x, cisternCell.z));
     for (const stall of worldStalls) {
-      const rise = stall.opening === "pentashield" ? Math.min(PENTA_H, top - stall.story + 1) : 2;
+      const rise =
+        stall.opening === "pentashield"
+          ? Math.min(stall.rise || PENTA_H, top - stall.story + 1)
+          : stall.rise || 2;
       if (s > stall.story && s < stall.story + rise) {
         for (const k of rectKeys(stall.rect)) skip.add(k);
       }
@@ -614,12 +646,9 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     }
     const climbRot = FACE_ROT[spec.entrance === "south" ? "north" : "south"];
     y.add("ladder", stair.x, 0, stair.z, climbRot, "live");
-    if (top >= 1) {
-      y.add("hatch", stair.x, 1, stair.z, 0, "live");
-      y.add("ladder", stair.x, 1, stair.z, climbRot, "live");
-    }
-    if (top >= 2) {
-      y.add("hatch", stair.x, 2, stair.z, 0, spec.lookout ? "look" : "live");
+    for (let s = 1; s <= top; s++) {
+      y.add("hatch", stair.x, s, stair.z, 0, spec.lookout && s === top ? "look" : "live");
+      if (s < top) y.add("ladder", stair.x, s, stair.z, climbRot, "live");
     }
   }
 
@@ -657,9 +686,23 @@ export function buildFromSpec(raw: BriefSpec): Plan {
       if (i % 2 === 0) return;
       if (skipWin.has(`${c.x}:${c.z}:${c.rot}`)) return;
       if (bay && spec.layout === "hangar" && inRect(bay, c.x, c.z) && facing === spec.bay) return;
-      y.replaceEdge(c.x, 0, c.z, c.rot, "window", "live");
-      if (top >= 1 && !(spec.lookout && top === 1)) {
-        y.replaceEdge(c.x, Math.min(1, top), c.z, c.rot, "window", spec.loft ? "loft" : "live");
+      for (let s = 0; s <= top; s++) {
+        if (spec.lookout && s === top) continue;
+        let blocked = false;
+        for (const stall of worldStalls) {
+          const rise = stall.rise || 2;
+          if (
+            inRect(stall.rect, c.x, c.z) &&
+            facing === spec.bay &&
+            s >= stall.story &&
+            s < stall.story + rise
+          ) {
+            blocked = true;
+          }
+        }
+        if (blocked) continue;
+        const room = s === 0 ? "live" : spec.loft ? "loft" : "live";
+        y.replaceEdge(c.x, s, c.z, c.rot, "window", room);
       }
     });
   }
@@ -688,9 +731,61 @@ export function buildFromSpec(raw: BriefSpec): Plan {
     [0, d - 1],
     [w - 1, d - 1],
   ];
-  y.columnsAt(corners, 0);
-  if (top >= 1) y.columnsAt(corners, Math.min(1, top));
-  if (spec.layout === "tower" && top >= 2) y.columnsAt(corners, 1);
+  for (let s = 0; s <= top; s++) {
+    if (spec.lookout && s === top) continue;
+    y.columnsAt(corners, s);
+  }
+
+  const shopStory = worldStalls.some((s) => s.story >= 3)
+    ? 2
+    : spec.workshop || (spec.storage && spec.storage !== "none")
+      ? Math.min(Math.max(worldStalls.some((s) => s.story >= 2) ? 2 : 0, 0), top)
+      : 0;
+  if ((spec.workshop || (spec.storage && spec.storage !== "none")) && top >= 0) {
+    const voidKeys = new Set<string>();
+    for (const stall of worldStalls) {
+      const rise = stall.rise || 2;
+      if (shopStory >= stall.story && shopStory < stall.story + rise) {
+        for (const k of rectKeys(stall.rect)) voidKeys.add(k);
+      }
+    }
+    const rawCells: { x: number; z: number }[] = [];
+    for (let x = 0; x < w; x++) {
+      for (let z = 0; z < d; z++) {
+        const k = key(x, z);
+        if (openSky.has(k) || voidKeys.has(k)) continue;
+        if (stair && stair.x === x && stair.z === z) continue;
+        if (cisternCell && cisternCell.x === x && cisternCell.z === z) continue;
+        rawCells.push({ x, z });
+      }
+    }
+    let cells = orderShopCells(rawCells, w, d);
+    if (!cells.length && bay) {
+      const back =
+        spec.bay === "south"
+          ? bay.z0
+          : spec.bay === "north"
+            ? bay.z1
+            : spec.bay === "east"
+              ? bay.x0
+              : bay.x1;
+      for (let x = bay.x0; x <= bay.x1; x++) {
+        for (let z = bay.z0; z <= bay.z1; z++) {
+          if (spec.bay === "south" || spec.bay === "north") {
+            if (z !== back) continue;
+          } else if (x !== back) continue;
+          if (stair && stair.x === x && stair.z === z) continue;
+          cells.push({ x, z });
+        }
+      }
+      cells = orderShopCells(cells, w, d);
+    }
+    const spots = packStations(cells, spec.workshop, spec.storage ?? "none");
+    for (const sp of spots) {
+      const room = spec.workshop ? "shop" : "store";
+      y.add(sp.type, sp.x, shopStory, sp.z, 0, room);
+    }
+  }
 
   return y.settle();
 }
@@ -727,7 +822,13 @@ function garageHasClearance(plan: Plan, garage: { x: number; z: number; rot: Rot
 function hasDoubleHeightBay(plan: Plan, spec: BriefSpec): boolean {
   const parked = parkedVehicles(spec);
   if (!parked.length) return true;
-  const needsGarage = parked.some((v) => v !== "carrier");
+  const needsGarage = parked.some(
+    (v) =>
+      v === "bike" ||
+      v === "buggy" ||
+      v === "crawler" ||
+      (v === "scout" && !parked.includes("assault") && !parked.includes("carrier")),
+  );
   const garages = plan.pieces.filter((p) => p.type === "garage_door");
   if (!needsGarage) return true;
   if (!garages.length) return false;
@@ -780,8 +881,14 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
     });
   }
   const parked = parkedVehicles(spec);
-  const needsGarage = parked.some((v) => v !== "carrier");
-  const needsPenta = parked.includes("carrier");
+  const needsGarage = parked.some(
+    (v) =>
+      v === "bike" ||
+      v === "buggy" ||
+      v === "crawler" ||
+      (v === "scout" && !parked.includes("assault") && !parked.includes("carrier")),
+  );
+  const needsPenta = parked.includes("carrier") || parked.includes("assault");
   const pentas = plan.pieces.filter((p) => p.type === "pentashield");
   if (parked.length) {
     if (needsGarage) {
@@ -817,9 +924,35 @@ export function specChecks(plan: Plan, raw: BriefSpec): SpecCheck[] {
     checks.push({ label: "No garage door", ok: !hasGarage });
   }
   if (spec.workshop) {
+    const shops = plan.pieces.some(
+      (p) =>
+        p.type === "fabricator" ||
+        p.type === "vehicle_fabricator" ||
+        p.type === "small_ore" ||
+        p.room === "shop",
+    );
     checks.push({
-      label: "Workshop passageway",
-      ok: (counts.passageway ?? 0) >= (spec.airlock ? 2 : 1),
+      label: "Starter shops",
+      ok: shops || (counts.passageway ?? 0) >= (spec.airlock ? 2 : 1),
+    });
+  }
+  if (spec.storage && spec.storage !== "none") {
+    checks.push({
+      label: "Storage crates",
+      ok: plan.pieces.some(
+        (p) =>
+          p.type === "chest" ||
+          p.type === "small_storage" ||
+          p.type === "storage_container" ||
+          p.type === "medium_storage",
+      ),
+    });
+  }
+  if (parked.includes("assault")) {
+    const penta = pentas[0];
+    checks.push({
+      label: "Assault hangar is three stories",
+      ok: Boolean(penta && (penta.rise ?? 0) >= 3),
     });
   }
   if (spec.cistern) {
